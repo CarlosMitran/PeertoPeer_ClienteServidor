@@ -2,19 +2,18 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "claves.h"
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include "comm.h"
+#include "servidor.h"
 
 #define MAX_LINE_LEN 255
 #define MAX_THREADS    10
 #define MAX_PETICIONES    256
 #define ERROR 0
 
-struct peticion buffer_peticiones[MAX_PETICIONES];
 mqd_t q_servidor;
 pthread_mutex_t mutex_mensaje;
 pthread_mutex_t mutex_file;
@@ -23,75 +22,61 @@ pthread_cond_t cond_file;
 int mensaje_copiado = 0;
 int file = 1;
 
-//Informacion que el hilo necesita para procesar la peticion
-struct inf_hilo {
-    struct peticion mess;
-};
 
 void *funcion_hilo(void *arg) {
     pthread_mutex_lock(&mutex_mensaje);
     //args->mess Accedo a mess de la estructura inf_hilo y lo guardo en mess, de tipo struct peticion
     int sc = *(int*)arg;
-    struct peticion mess;
     int ret;
-    ret = recvMessage(sc, (char *) &(mess.op), sizeof(int));
+    int resp;
+    char buf[256];
+    char peticion[256];
+    char usuario[256];
+    char filename[256];
+    char descripcion[256];
+
+    ret = readLine(sc, buf, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
         exit(-1) ;
     }
-    ret = recvMessage(sc, (char *) &mess.key, sizeof(int));
+    strcpy(peticion, buf);
+
+
+    ret = readLine(sc, buf, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
         exit(-1) ;
     }
-    ret = recvMessage(sc, (char *) &mess.value1, sizeof(char)*256);
+    strcpy(usuario, buf);
+
+
+    ret = readLine(sc, buf, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
         exit(-1) ;
     }
-    ret = recvMessage(sc, (char *) &mess.value2, sizeof(int));
+    strcpy(filename, buf);
+
+    ret = readLine(sc, buf, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
         exit(-1) ;
     }
-    ret = recvMessage(sc, (char *) &mess.V_value2, sizeof(double )*32);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        exit(-1) ;
-    }
+    strcpy(descripcion, buf);
+
+
     mensaje_copiado = 1;
     pthread_cond_signal(&cond_mensaje);
     pthread_mutex_unlock(&mutex_mensaje);
 
-    struct respuesta resp;
+
+
     pthread_mutex_lock(&mutex_file);
-    while(file == 0) {
-        pthread_cond_wait(&cond_file, &mutex_file);
+    if (strcmp(peticion, "REGISTER") == 0){
+        resp = init();
     }
-    if (mess.op == 0) {
-        resp.res = init();
-    }
-    //set_value
-    else if (mess.op == 1) {
-        resp.res = set_value(mess.key, mess.value1, mess.value2, mess.V_value2);
-    }
-    //get_value
-    else if (mess.op == 2) {
-        resp.res = get_value(mess.key, resp.value1, &resp.value2, resp.V_value2);
-    }
-    //modify_value
-    else if (mess.op == 3) {
-        resp.res = modify_value(mess.key, mess.value1, mess.value2, mess.V_value2);
-    }
-    //delete_key
-    else if (mess.op == 4) {
-        resp.res = delete_key(mess.key);
-    }
-    //exist
-    else if (mess.op == 5) {
-        resp.res = exist(mess.key);
-    }
-    //operacion desconocida
+        //operacion desconocida
     else {
         perror("Operacion desconocida");
     }
@@ -99,32 +84,17 @@ void *funcion_hilo(void *arg) {
     pthread_cond_signal(&cond_file);
     pthread_mutex_unlock(&mutex_file);
 
+
+
+    char bufres[256];
     //enviamos información a cliente
-    ret = sendMessage(sc, (char *)&resp.res, sizeof(int));
+    sprintf(bufres, "%d", resp);
+    ret = sendMessage(sc, bufres, strlen(bufres) + 1);
     if (ret == -1) {
         printf("Error en envío res\n");
         exit(-1) ;
     }
-    ret = sendMessage(sc, (char *)&resp.key, sizeof(int));
-    if (ret == -1) {
-        printf("Error en envío key\n");
-        exit(-1) ;
-    }
-    ret = sendMessage(sc, (char *)&resp.value1, sizeof(char)*256);
-    if (ret == -1) {
-        printf("Error en envío value1\n");
-        exit(-1) ;
-    }
-    ret = sendMessage(sc, (char *)&resp.value2, sizeof(int));
-    if (ret == -1) {
-        printf("Error en envío value2\n");
-        exit(-1) ;
-    }
-    ret = sendMessage(sc, (char *)&resp.V_value2, sizeof(double )*32);
-    if (ret == -1) {
-        printf("Error en envío V_value2\n");
-        exit(-1) ;
-    }
+
 
 
     pthread_exit(0);
@@ -341,11 +311,11 @@ int main( int argc, char *argv[] ) {
                 mensaje_copiado = 1;
                 pthread_mutex_unlock(&mutex_mensaje);
             }
-            
+
         }
         free(arg);
     }
-   
+
     close (sd);
     return 0;
 
