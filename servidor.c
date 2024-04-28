@@ -42,7 +42,7 @@ void *funcion_hilo(void *arg) {
         pthread_exit(NULL);
     }
 
-    ret = readLine(sc, username, sizeof(username));
+    ret = readLine(sc, usuario, sizeof(usuario));
     if (ret < 0) {
         printf("s> Error en recepción de username\n");
         pthread_exit(NULL);
@@ -51,14 +51,13 @@ void *funcion_hilo(void *arg) {
     strcpy(peticion, buf);
     printf("s> OPERACION FROM: %s\n", usuario);
     
-    int resp = register_user(username);
     char response[2];
     snprintf(response, sizeof(response), "%d", resp);
     sendMessage(sc, response, sizeof(response));
 
     close(sc);
     pthread_exit(NULL);
-}
+
 
     ret = readLine(sc, usuario, 256);
     if (ret < 0) {
