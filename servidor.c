@@ -24,9 +24,9 @@ int file = 1;
 
 
 void *funcion_hilo(void *arg) {
-    pthread_mutex_lock(&mutex_mensaje);
     int sc = *(int*)arg;
     free(arg);
+
     int ret;
     int resp;
     char buf[256];
@@ -34,36 +34,27 @@ void *funcion_hilo(void *arg) {
     char usuario[256];
     char filename[256];
     char descripcion[256];
-     char command[256];
+    char command[256];
 
+    //Leer comando
     ret = readLine(sc, command, 256);
     if (ret < 0 || strcmp(command, "REGISTER") != 0) {
         printf("s> Error en recepción de comando o comando no soportado\n");
+        close(sc);
         pthread_exit(NULL);
-    }
+    } 
 
+    //Leer nombre usuario
     ret = readLine(sc, usuario, sizeof(usuario));
     if (ret < 0) {
         printf("s> Error en recepción de username\n");
+        close(sc);
         pthread_exit(NULL);
     }
 
-    strcpy(peticion, buf);
+    //strcpy(peticion, buf);
     printf("s> OPERACION FROM: %s\n", usuario);
-    
-    char response[2];
-    snprintf(response, sizeof(response), "%d", resp);
-    sendMessage(sc, response, sizeof(response));
-
-    close(sc);
-    pthread_exit(NULL);
-
-
-    ret = readLine(sc, usuario, 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        pthread_exit(NULL);
-    }
+    resp = init();
 
     ret = readLine(sc,filename , 256);
     if (ret < 0) {
@@ -76,45 +67,23 @@ void *funcion_hilo(void *arg) {
         printf("Error en recepción op\n");
         pthread_exit(NULL);
     }
-
-    mensaje_copiado = 1;
-    pthread_cond_signal(&cond_mensaje);
-    pthread_mutex_unlock(&mutex_mensaje);
-
-    pthread_mutex_lock(&mutex_file);
-    //resp = init();
-    if (strcmp(peticion, "REGISTER") == 0){
-        resp = init();
-    } else {
-        perror("Operacion desconocida");
-        resp = -1;
-    }
-    file = 1;
-    pthread_cond_signal(&cond_file);
-    pthread_mutex_unlock(&mutex_file);
-
-    char bufres[256];
-    //enviamos información a cliente
-    sprintf(bufres, "%d", resp);
-    ret = sendMessage(sc, bufres, strlen(bufres) + 1);
-    if (ret == -1) {
-        printf("Error en envío res\n");
-        exit(-1) ;
-    }
+    char response[2];
+    snprintf(response, sizeof(response), "%d", resp);
+    sendMessage(sc, response, sizeof(response));
     close(sc);
     pthread_exit(NULL);
+
 }
 
 int init() {
-    //Inicializa .txt, si ya está creada la borra y la vuelve a crear, si no la vacía
-    printf("en init");
-    FILE *fp;
-    fp = fopen("reg_users.txt", "w");
+    // Verificar si el archivo existe y crearlo si es necesario
+    FILE *fp = fopen("reg_users.txt", "a+");
     if (fp == NULL) {
+        perror("Error al abrir el archivo de usuarios");
         return -1;
     }
     fclose(fp);
-    return 0;
+    return 0; // Éxito
 }
 
 int set_value(int key, char *value1, int N_value2, double *V_value_2) {
