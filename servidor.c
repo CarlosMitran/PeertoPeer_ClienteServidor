@@ -25,8 +25,8 @@ int file = 1;
 
 void *funcion_hilo(void *arg) {
     pthread_mutex_lock(&mutex_mensaje);
-    //args->mess Accedo a mess de la estructura inf_hilo y lo guardo en mess, de tipo struct peticion
     int sc = *(int*)arg;
+    free(arg);
     int ret;
     int resp;
     char buf[256];
@@ -34,57 +34,65 @@ void *funcion_hilo(void *arg) {
     char usuario[256];
     char filename[256];
     char descripcion[256];
+     char command[256];
 
-    ret = readLine(sc, buf, 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        exit(-1) ;
+    ret = readLine(sc, command, 256);
+    if (ret < 0 || strcmp(command, "REGISTER") != 0) {
+        printf("s> Error en recepción de comando o comando no soportado\n");
+        pthread_exit(NULL);
     }
+
+    ret = readLine(sc, username, sizeof(username));
+    if (ret < 0) {
+        printf("s> Error en recepción de username\n");
+        pthread_exit(NULL);
+    }
+
     strcpy(peticion, buf);
+    printf("s> OPERACION FROM: %s\n", usuario);
+    
+    int resp = register_user(username);
+    char response[2];
+    snprintf(response, sizeof(response), "%d", resp);
+    sendMessage(sc, response, sizeof(response));
 
+    close(sc);
+    pthread_exit(NULL);
+}
 
-    ret = readLine(sc, buf, 256);
+    ret = readLine(sc, usuario, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
-        exit(-1) ;
+        pthread_exit(NULL);
     }
-    strcpy(usuario, buf);
 
-
-    ret = readLine(sc, buf, 256);
+    ret = readLine(sc,filename , 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
-        exit(-1) ;
+        pthread_exit(NULL);
     }
-    strcpy(filename, buf);
 
-    ret = readLine(sc, buf, 256);
+    ret = readLine(sc, descripcion, 256);
     if (ret < 0) {
         printf("Error en recepción op\n");
-        exit(-1) ;
+        pthread_exit(NULL);
     }
-    strcpy(descripcion, buf);
-
 
     mensaje_copiado = 1;
     pthread_cond_signal(&cond_mensaje);
     pthread_mutex_unlock(&mutex_mensaje);
 
-
-
     pthread_mutex_lock(&mutex_file);
+    //resp = init();
     if (strcmp(peticion, "REGISTER") == 0){
         resp = init();
-    }
-        //operacion desconocida
-    else {
+    } else {
         perror("Operacion desconocida");
+        resp = -1;
     }
     file = 1;
     pthread_cond_signal(&cond_file);
     pthread_mutex_unlock(&mutex_file);
-
-
 
     char bufres[256];
     //enviamos información a cliente
@@ -94,16 +102,15 @@ void *funcion_hilo(void *arg) {
         printf("Error en envío res\n");
         exit(-1) ;
     }
-
-
-
-    pthread_exit(0);
+    close(sc);
+    pthread_exit(NULL);
 }
 
 int init() {
     //Inicializa .txt, si ya está creada la borra y la vuelve a crear, si no la vacía
+    printf("en init");
     FILE *fp;
-    fp = fopen("Claves.txt", "w");
+    fp = fopen("reg_users.txt", "w");
     if (fp == NULL) {
         return -1;
     }
@@ -271,52 +278,85 @@ int exist(int key) {
 
 
 int main( int argc, char *argv[] ) {
-    pthread_t thread;
-    pthread_attr_t th_attr;
-
-    if (argc < 2) {
-        printf("Uso: %s <puerto>\n", argv[0]);
-        exit(-1) ;
-    }
-
-    pthread_mutex_init(&mutex_mensaje, NULL);
-    pthread_cond_init(&cond_mensaje, NULL);
-    pthread_attr_init(&th_attr);
-    pthread_mutex_init(&mutex_file, NULL);
-    pthread_cond_init(&cond_file, NULL);
-
+    
+    int port = 0;
     int sd, sc;
 
-    sd = serverSocket(INADDR_ANY, atoi(argv[1]), SOCK_STREAM);
-    if (sd < 0) {
-        printf ("SERVER: Error en serverSocket\n");
-        return 0;
+    if (argc < 3) {
+        fprintf(stderr, "Uso: %s -p <puerto>\n", argv[0]);
+        return 1;
     }
 
-    pthread_attr_setdetachstate(&th_attr, PTHREAD_CREATE_DETACHED);
-    while (1) {
-        sc = serverAccept(sd) ;
-        if (sc < 0) {
-            printf("Error en serverAccept\n");
-            continue ;
-        }
-        int *arg = malloc(sizeof(int));
-        *arg = sc;
-        int error = pthread_create(&thread, &th_attr, funcion_hilo,(void *) arg);
-        if (error == 0) {
-            pthread_mutex_lock(&mutex_mensaje);
-            mensaje_copiado = 0;
-            while (mensaje_copiado == 0) {
-                pthread_cond_wait(&cond_mensaje, &mutex_mensaje);
-                mensaje_copiado = 1;
-                pthread_mutex_unlock(&mutex_mensaje);
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-p") == 0) {
+            if (i + 1 < argc) { // Aseguramos que hay un argumento después de "-p"
+                port = atoi(argv[i + 1]);
+                i++; // Incrementamos 'i' para saltar el número de puerto
+            } else {
+                fprintf(stderr, "Error: se esperaba el número de puerto después de '-p'\n");
+                return 1;
             }
-
         }
-        free(arg);
     }
 
-    close (sd);
-    return 0;
+    if (port == 0) {
+        fprintf(stderr, "Número de puerto inválido o no especificado.\n");
+        return 1;
+    }
+
+    printf("Servidor escuchando en el puerto %d\n", port);
+   
+
+        pthread_t thread;
+        pthread_attr_t th_attr;
+        pthread_mutex_init(&mutex_mensaje, NULL);
+        pthread_cond_init(&cond_mensaje, NULL);
+        pthread_attr_init(&th_attr);
+        pthread_mutex_init(&mutex_file, NULL);
+        pthread_cond_init(&cond_file, NULL);
+        pthread_attr_setdetachstate(&th_attr, PTHREAD_CREATE_DETACHED);
+
+        
+
+        sd = serverSocket(INADDR_ANY, port, SOCK_STREAM);
+        if (sd < 0) {
+            printf ("SERVER: Error en serverSocket\n");
+            return -1;
+        }
+
+        while (1) {
+            sc = serverAccept(sd) ;
+            if (sc < 0) {
+                perror("Error en serverAccept");
+                if (errno == EINTR) {
+                    continue; 
+                }
+                break; 
+            }
+            int *arg = malloc(sizeof(int));
+            if (!arg) {
+                printf("Error al asignar memoria\n");
+                close(sc);
+                continue;
+            }
+            *arg = sc;
+
+            if (pthread_create(&thread, &th_attr, funcion_hilo,(void *) arg) != 0) {
+                printf("Error al crear el hilo\n");
+                free(arg);
+                close(sc);
+            }
+            
+        }
+
+        close(sd);
+        pthread_attr_destroy(&th_attr);
+        pthread_mutex_destroy(&mutex_mensaje);
+        pthread_mutex_destroy(&mutex_file);
+        pthread_cond_destroy(&cond_mensaje);
+        pthread_cond_destroy(&cond_file);
+
+        return 0;
+    
 
 }
