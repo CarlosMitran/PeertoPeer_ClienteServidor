@@ -4,15 +4,14 @@ import socket
 import sys
 
 
-class client :
+class client:
     def __init__(self):
-        client.user = ""
-
+        self.user = ""
 
     # ******************** TYPES *********************
     # *
     # * @brief Return codes for the protocol methods
-    class RC(Enum) :
+    class RC(Enum):
         OK = 0
         ERROR = 1
         USER_ERROR = 2
@@ -23,14 +22,12 @@ class client :
 
     # ******************** METHODS *******************
 
-
-    @staticmethod
-    def  register(user, sock) :
+    def register(self, sock):
         try:
             # Enviar nombre al servidor y el comando
             command = 'REGISTER\0'
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(user + '\0', 'utf8')  
+            user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -39,23 +36,23 @@ class client :
                 return client.RC.OK
             elif response_code == '1':
                 print("c> USERNAME IN USE")
+                self.user = ""
                 return client.RC.USER_ERROR
             else:
                 print("c> REGISTER FAIL")
+                self.user = ""
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
-
-    @staticmethod
-    def  unregister(user,sock) :
+    def unregister(self, sock):
         try:
             # Enviar nombre al servidor y el comando
             command = 'UNREGISTER\0'
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(user + '\0', 'utf8')  
+            user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -68,18 +65,18 @@ class client :
             else:
                 print("c> UNREGISTER FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
-    @staticmethod
-    def  connect(user,sock) :
+
+    def connect(self, sock):
         try:
             # Enviar nombre al servidor y el comando
             command = 'CONNECT\0'
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(user + '\0', 'utf8')  
+            user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -88,25 +85,30 @@ class client :
                 return client.RC.OK
             elif response_code == '1':
                 print("c> CONNECT FAIL , USER DOES NOT EXIST")
+                self.user = ""
                 return client.RC.USER_ERROR
             elif response_code == '2':
                 print("c> USER ALREADY CONNECTED")
+                self.user = ""
                 return client.RC.USER_ERROR
             else:
                 print("c> CONNECT FAIL")
+                self.user = ""
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
-    
-    @staticmethod
-    def  disconnect(user,sock) :
+
+    def disconnect(self, sock):
         try:
+            if self.user == "":
+                print("c> DISCONNECT FAIL / CONNECT FIRST")
+                return client.RC.USER_ERROR
             # Enviar nombre al servidor y el comando
             command = 'DISCONNECT\0'
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(user + '\0', 'utf8')  
+            user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -122,18 +124,20 @@ class client :
             else:
                 print("c> DISCONNECT FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
-    @staticmethod
-    def  publish(fileName,  description, sock) :
+    def publish(self, fileName, description, sock):
         try:
+            if self.user == "":
+                print("c> DISCONNECT FAIL / CONNECT FIRST")
+                return client.RC.USER_ERROR
             # Enviar nombre al servidor y el comando
             command = 'PUBLISH\0'
             sock.sendall(command.encode('utf-8'))
-            file_bytes = bytes(fileName + description + '\0', 'utf8')  
+            file_bytes = bytes(fileName + description + '\0', 'utf8')
             sock.sendall(file_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -152,18 +156,21 @@ class client :
             else:
                 print("c> PUBLISH FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
-    @staticmethod
-    def  delete(fileName,sock) :
+
+    def delete(self, fileName, sock):
         try:
+            if self.user == "":
+                print("c> DISCONNECT FAIL / CONNECT FIRST")
+                return client.RC.USER_ERROR
             # Enviar nombre al servidor y el comando
             command = 'DELETE\0'
             sock.sendall(command.encode('utf-8'))
-            file_bytes = bytes(fileName +'\0', 'utf8')  
+            file_bytes = bytes(fileName + '\0', 'utf8')
             sock.sendall(file_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -182,14 +189,16 @@ class client :
             else:
                 print("c> DELETE FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
-    @staticmethod
-    def  listusers(sock) :
+    def listusers(self, sock):
         try:
+            if self.user == "":
+                print("c> DISCONNECT FAIL / CONNECT FIRST")
+                return client.RC.USER_ERROR
             # Enviar nombre al servidor y el comando
             command = 'LIST_USERS\0'
             sock.sendall(command.encode('utf-8'))
@@ -208,25 +217,25 @@ class client :
             else:
                 print("c> LIST_USERS FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
 
     @staticmethod
-    def  listcontent(user) :
+    def listcontent(user):
         #  Write your code here
         return client.RC.ERROR
 
-    @staticmethod
-    def  getfile(user,  remote_FileName,  local_FileName, sock) :
+
+    def getfile(self, remote_FileName, local_FileName, sock):
         try:
             # Enviar nombre al servidor y el comando
             command = 'GET_FILE\0'
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(user +'\0', 'utf8')  
+            user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
-            file_bytes = bytes(remote_FileName+ local_FileName +'\0', 'utf8')  
+            file_bytes = bytes(remote_FileName + local_FileName + '\0', 'utf8')
             sock.sendall(file_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -239,7 +248,7 @@ class client :
             else:
                 print("c> GET_FILE FAIL")
                 return client.RC.ERROR
-        except: 
+        except:
             return client.RC.ERROR
         finally:
             sock.close()
@@ -247,78 +256,81 @@ class client :
     # *
     # **
     # * @brief Command interpreter for the client. It calls the protocol functions.
-    @staticmethod
-    def shell(sock):
-
-        while (True) :
-            try :
+    def shell(self, sock):
+        while (True):
+            try:
                 command = input("c> ")
                 line = command.split(" ")
                 if (len(line) > 0):
 
                     line[0] = line[0].upper()
 
-                    if (line[0]=="REGISTER") :
-                        if (len(line) == 2) :
-                            client.register(line[1], sock)
-                        else :
+                    if (line[0] == "REGISTER"):
+                        if (len(line) == 2):
+                            self.user = line[1]
+                            self.register(sock)
+                            self.user = ""
+                        else:
                             print("Syntax error. Usage: REGISTER <userName>")
 
-                    elif(line[0]=="UNREGISTER") :
-                        if (len(line) == 2) :
-                            client.unregister(line[1],sock)
-                        else :
+                    elif (line[0] == "UNREGISTER"):
+                        if (len(line) == 2):
+                            self.user = line[1]
+                            self.unregister(sock)
+                            self.user = ""
+                        else:
                             print("Syntax error. Usage: UNREGISTER <userName>")
 
-                    elif(line[0]=="CONNECT") :
-                        if (len(line) == 2) :
-                            client.connect(line[1],sock)
-                        else :
+                    elif (line[0] == "CONNECT"):
+                        if (len(line) == 2):
+                            self.user = line[1]
+                            self.connect(sock)
+                        else:
                             print("Syntax error. Usage: CONNECT <userName>")
-                    
-                    elif(line[0]=="PUBLISH") :
-                        if (len(line) >= 3) :
+
+                    elif (line[0] == "PUBLISH"):
+                        if (len(line) >= 3):
                             #  Remove first two words
                             description = ' '.join(line[2:])
-                            client.publish(line[1], description)
-                        else :
+                            self.publish(description)
+                        else:
                             print("Syntax error. Usage: PUBLISH <fileName> <description>")
-                    elif(line[0]=="DELETE") :
-                        if (len(line) == 2) :
-                            client.delete(line[1])
-                        else :
+                    elif (line[0] == "DELETE"):
+                        if (len(line) == 2):
+                            self.delete(line[1])
+                        else:
                             print("Syntax error. Usage: DELETE <fileName>")
 
-                    elif(line[0]=="LIST_USERS") :
-                        if (len(line) == 1) :
+                    elif (line[0] == "LIST_USERS"):
+                        if (len(line) == 1):
                             client.listusers()
-                        else :
+                        else:
                             print("Syntax error. Use: LIST_USERS")
 
-                    elif(line[0]=="LIST_CONTENT") :
-                        if (len(line) == 2) :
+                    elif (line[0] == "LIST_CONTENT"):
+                        if (len(line) == 2):
                             client.listcontent(line[1])
-                        else :
+                        else:
                             print("Syntax error. Usage: LIST_CONTENT <userName>")
 
-                    elif(line[0]=="DISCONNECT") :
-                        if (len(line) == 2) :
-                            client.disconnect(line[1],sock)
-                        else :
+                    elif (line[0] == "DISCONNECT"):
+                        if (len(line) == 2):
+                            client.disconnect(line[1], sock)
+                        else:
                             print("Syntax error. Usage: DISCONNECT <userName>")
 
-                    elif(line[0]=="GET_FILE") :
-                        if (len(line) == 4) :
+                    elif (line[0] == "GET_FILE"):
+                        if (len(line) == 4):
                             client.getfile(line[1], line[2], line[3])
-                        else :
+                        else:
                             print("Syntax error. Usage: GET_FILE <userName> <remote_fileName> <local_fileName>")
 
-                    elif(line[0]=="QUIT") :
-                        if (len(line) == 1) :
+                    elif (line[0] == "QUIT"):
+                        if (len(line) == 1):
                             break
-                        else :
+                        else:
                             print("Syntax error. Use: QUIT")
-                    else :
+                    else:
                         print("Error: command " + line[0] + " not valid.")
             except Exception as e:
                 print("Exception: " + str(e))
@@ -326,14 +338,13 @@ class client :
     # *
     # * @brief Prints program usage
     @staticmethod
-    def usage() :
+    def usage():
         print("Usage: python3 client.py -s <server> -p <port>")
-
 
     # *
     # * @brief Parses program execution arguments
     @staticmethod
-    def  parseArguments(argv) :
+    def parseArguments(argv):
         parser = argparse.ArgumentParser()
         parser.add_argument('-s', type=str, required=True, help='Server IP')
         parser.add_argument('-p', type=int, required=True, help='Server Port')
@@ -344,19 +355,18 @@ class client :
 
         if ((args.p < 1024) or (args.p > 65535)):
             parser.error("Error: Port must be in the range 1024 <= port <= 65535")
-        
+
         client._server = args.s
         client._port = args.p
         return True
 
-
     # ******************** MAIN *********************
     @staticmethod
-    def main(argv) :
-        if (not client.parseArguments(argv)) :
+    def main(argv):
+        if (not client.parseArguments(argv)):
             client.usage()
             return
-        
+
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         args = (client._server, client._port)
         sock.connect(args)
@@ -364,5 +374,5 @@ class client :
         print("+++ FINISHED +++")
 
 
-if __name__=="__main__":
+if __name__ == "__main__":
     client.main([])

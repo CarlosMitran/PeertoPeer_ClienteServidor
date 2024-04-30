@@ -1,14 +1,17 @@
 Carlos Mitran y Helena González
 100472086@alumnos.uc3m.es 100451026@alumnos.uc3m.es
 
+
 En terminal cliente, se debe ejecutar el comando:
 export LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH
 env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente
+
 
 Como alternativa, se pueden definir las variables de entorno primero, y luego usar el cliente por separado mediante:
 export IP_TUPLAS=localhost
 export PORT_TUPLAS=8080
 ./cliente <nºop> <param op>
+
 
 Archivos ssh:
 chmod +x ssh_pruebas_conc.sh
