@@ -145,6 +145,7 @@ int exist(const char *usuario) {
         return -1;
     }
     while (fgets(buf, MAX_LINE_LEN, fp) != NULL) {
+        buf[strcspn(buf, "\n")] = 0;
         if (buf[0] == '@') {
             if (strcmp(buf + 1, usuario) == 0) {
                 fclose(fp);
