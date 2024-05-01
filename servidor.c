@@ -38,8 +38,13 @@ void *funcion_hilo(void *arg) {
 
     //Leer comando
     
-    if (readLine(sc, command, 256) < 0) {
-        printf("s> Error en recepción de comando\n");
+    ret = readLine(sc, command, 256);
+    if (ret < 0 ||(
+        strcmp(command, "REGISTER") != 0 && strcmp(command, "UNREGISTER") != 0 && strcmp(command, "CONNECT") != 0
+        && strcmp(command, "PUBLISH") != 0 && strcmp(command, "DELETE") != 0 && strcmp(command, "LIST_USERS") &&
+        strcmp(command, "LIST_CONTENT")
+        && strcmp(command, "DISCONNECT") && strcmp(command, "GET_FILE") && strcmp(command, "QUIT"))) {
+        printf("s> Error en recepción de comando o comando no soportado\n");
         close(sc);
         pthread_exit(NULL);
     }
@@ -54,11 +59,12 @@ void *funcion_hilo(void *arg) {
     printf("s> OPERACION FROM: %s\n", usuario);
     resp = init();
 
-    if (strcmp(command, "REGISTER") == 0) {
+    if (strcmp(command, "REGISTER") == 0)
+    {
         resp = register_user(usuario);
-    } else {
-        printf("s> Operacion desconocida\n");
-        resp = -1;
+    }
+    else if (strcmp(command, "CONNECT") == 0){
+        resp = connect_user(usuario);
     }
         
     ret = readLine(sc,filename , 256);
@@ -97,35 +103,61 @@ int init() {
 
 int register_user(const char *username) {
     FILE *fp;
-    char line[256];
     int found = 0;
 
     pthread_mutex_lock(&mutex_file);
+    int exists;
+    exists = exist(username);
+    if (exists == 1){
+        found = 1;
+    }
+    if (exists == -1){
+        return -1;
+    }
+
     fp = fopen("reg_users.txt", "r+");
     if (!fp) {
         pthread_mutex_unlock(&mutex_file);
         return -1; // Error al abrir archivo
     }
 
-    // Buscar el usuario en el archivo
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        line[strcspn(line, "\n")] = 0; 
-        if (strcmp(line, username) == 0) {
-            found = 1;
-            break;
-        }
-    }
+
 
     if (!found) {
         printf("not found");
         // Si no se encontró, añadir al final
         fseek(fp, 0, SEEK_END);
-        fprintf(fp, "%s\n", username);
+        fprintf(fp, "@%s\n", username);
     }
 
     fclose(fp);
     pthread_mutex_unlock(&mutex_file);
     return found ? 1 : 0; // 1 si el usuario ya existía, 0 si se añadió
+}
+
+int connect_user(char *usuario) {
+    return 0;
+}
+
+
+int exist(const char *usuario) {
+    FILE *fp;
+    char buf[MAX_LINE_LEN];
+    fp = fopen("reg_users.txt", "r");
+    if (fp == NULL) {
+        fclose(fp);
+        return -1;
+    }
+    while (fgets(buf, MAX_LINE_LEN, fp) != NULL) {
+        if (buf[0] == '@') {
+            if (strcmp(buf + 1, usuario) == 0) {
+                fclose(fp);
+                return 1;
+            }
+        }
+    }
+    fclose(fp);
+    return 0;
 }
 
 int main( int argc, char *argv[] ) {
