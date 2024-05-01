@@ -86,16 +86,15 @@ void *funcion_hilo(void *arg) {
 
 int register_user(const char *username) {
     FILE *fp;
-    char line[256];
     int found = 0;
 
     pthread_mutex_lock(&mutex_file);
-    int exist;
-    exist = exist(username);
-    if (exist == 1){
+    int exists;
+    exists = exist(username);
+    if (exists == 1){
         found = 1;
     }
-    if (exist == -1){
+    if (exists == -1){
         return -1;
     }
 
@@ -105,20 +104,13 @@ int register_user(const char *username) {
         return -1; // Error al abrir archivo
     }
 
-    // Buscar el usuario en el archivo
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        line[strcspn(line, "\n")] = 0;
-        if (strcmp(line, username) == 0) {
-            found = 1;
-            break;
-        }
-    }
+
 
     if (!found) {
         printf("not found");
         // Si no se encontró, añadir al final
         fseek(fp, 0, SEEK_END);
-        fprintf(fp, "%s\n", username);
+        fprintf(fp, "@%s\n", username);
     }
 
     fclose(fp);
@@ -132,7 +124,7 @@ int connect_user(char *usuario) {
 }
 
 
-int exist(char *usuario) {
+int exist(const char *usuario) {
     FILE *fp;
     char buf[MAX_LINE_LEN];
     fp = fopen("reg_users.txt", "r");
@@ -142,8 +134,7 @@ int exist(char *usuario) {
     }
     while (fgets(buf, MAX_LINE_LEN, fp) != NULL) {
         if (buf[0] == '@') {
-            buf = buf + 1 ;
-            if (strcmp(buf, key)) {
+            if (strcmp(buf + 1, usuario) == 0) {
                 fclose(fp);
                 return 1;
             }
