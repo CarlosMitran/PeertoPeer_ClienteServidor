@@ -58,8 +58,14 @@ void *funcion_hilo(void *arg) {
         {
             resp = register_user(usuario);
         }
-        else if (strcmp(command, "CONNECT") == 0){
+        else if (strcmp(command, "UNREGISTER") == 0){
+            resp = unregister_user(usuario);
+        }
+         else if (strcmp(command, "CONNECT") == 0){
             resp = connect_user(usuario);
+        }
+        else if (strcmp(command, "DISCONNECT") == 0){
+            resp = unregister_user(usuario);
         }
         char response[2];
         snprintf(response, sizeof(response), "%d", resp);
@@ -131,8 +137,139 @@ int register_user(const char *username) {
     return found ; // 1 si el usuario ya existía, 0 si se añadió
 }
 
-int connect_user(char *usuario) {
-    return 0;
+int unregister_user(const char *username) {
+    FILE *fp, *fp_temp;
+    char buf[MAX_LINE_LEN];
+    int user_found = 0;
+
+    pthread_mutex_lock(&mutex_file);
+
+    fp = fopen("reg_users.txt", "r");
+    if (!fp) {
+        pthread_mutex_unlock(&mutex_file);
+        return -1;  
+    }
+
+    fp_temp = fopen("reg_users.tmp", "w");
+    if (!fp_temp) {
+        fclose(fp);
+        pthread_mutex_unlock(&mutex_file);
+        return -1; 
+    }
+
+    // Leer el archivo original y escribir todo excepto el usuario a eliminar en el archivo temporal
+    while (fgets(buf, MAX_LINE_LEN, fp) != NULL) {
+        buf[strcspn(buf, "\n")] = 0;
+        
+        if (buf[0] == '@') {
+            if (strcmp(buf + 1, username) == 0) {
+                user_found = 1;
+                continue;  
+            }
+        }
+        fprintf(fp_temp, "%s\n", buf);  
+    }
+
+    fclose(fp);
+    fclose(fp_temp);
+
+    // Eliminar el archivo original y renombrar el temporal
+    if (user_found) {
+        remove("reg_users.txt");
+        rename("reg_users.tmp", "reg_users.txt");
+    } else {
+        remove("reg_users.tmp");  // Si no se encontró el usuario, eliminar el archivo temporal
+    }
+
+    pthread_mutex_unlock(&mutex_file);
+    return user_found ? 0 : 1;  // Devuelve 0 si el usuario fue eliminado, 1 si no se encontró
+}
+
+int connect_user(const char *username) {
+    FILE *fp_reg, *fp_conn;
+    int is_registered = 0;
+    int is_connected = 0;
+
+    pthread_mutex_lock(&mutex_file);
+
+    // Primero, verificamos si el usuario está registrado.
+    is_registered = exist(username);
+    if (is_registered != 1) {
+        pthread_mutex_unlock(&mutex_file);
+        return 1; // Usuario no registrado
+    }
+
+    // Abrimos el archivo de usuarios conectados para verificar si ya está conectado
+    fp_conn = fopen("connected_usr.txt", "r+");
+    if (!fp_conn) {
+        // Si no se puede abrir el archivo, intentamos crearlo.
+        fp_conn = fopen("connected_usr.txt", "w+");
+        if (!fp_conn) {
+            pthread_mutex_unlock(&mutex_file);
+            return -1; // Error al abrir o crear archivo
+        }
+    }
+
+    // Buscar si el usuario ya está conectado
+    char buf[MAX_LINE_LEN];
+    while (fgets(buf, MAX_LINE_LEN, fp_conn) != NULL) {
+        buf[strcspn(buf, "\n")] = 0; // Elimina el salto de línea
+        if (buf[0] == '@' && strcmp(buf + 1, username) == 0) {
+            is_connected = 1;
+            break;
+        }
+    }
+
+    // Si el usuario no está ya conectado, lo añadimos.
+    if (!is_connected) {
+        fseek(fp_conn, 0, SEEK_END);
+        fprintf(fp_conn, "@%s\n", username);
+    }
+
+    // Cerrar archivo de usuarios conectados
+    fclose(fp_conn);
+    pthread_mutex_unlock(&mutex_file);
+
+    return is_connected ? 2 : 0; // Devuelve 2 si ya estaba conectado, 0 si se conectó ahora
+}
+
+int disconnect_user(const char *username) {
+    FILE *fp, *fp_temp;
+    char buf[MAX_LINE_LEN];
+    int found = 0;
+
+    pthread_mutex_lock(&mutex_file);
+
+    // Abrir el archivo de usuarios conectados y un archivo temporal
+    fp = fopen("connected_usr.txt", "r");
+    fp_temp = fopen("temp_connected_usr.txt", "w");
+
+    if (!fp || !fp_temp) {
+        if (fp) fclose(fp);
+        if (fp_temp) fclose(fp_temp);
+        pthread_mutex_unlock(&mutex_file);
+        return -1; 
+    }
+
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+        buf[strcspn(buf, "\n")] = 0; 
+        if (buf[0] == '@' && strcmp(buf + 1, username) == 0) {
+            found = 1; 
+        } else {
+            fprintf(fp_temp, "%s\n", buf); 
+        }
+    }
+
+    fclose(fp);
+    fclose(fp_temp);
+
+    // Borrar archivo original y renombrar el temporal
+    remove("connected_usr.txt");
+    rename("temp_connected_usr.txt", "connected_usr.txt");
+
+    pthread_mutex_unlock(&mutex_file);
+
+    return found ? 0 : 1; 
 }
 
 

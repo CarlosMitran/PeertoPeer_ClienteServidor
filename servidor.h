@@ -7,7 +7,7 @@
 
 int exist(const char *usuario);
 int register_user(const char *usuario);
-int connect_user(char *usuario);
+int connect_user(const char *usuario);
 
 
 #endif //FINAL_DISTRIBUIDOS_SERVIDOR_H
