@@ -361,8 +361,7 @@ class client:
         return True
 
     # ******************** MAIN *********************
-    @staticmethod
-    def main(argv):
+    def main(self, argv):
         if (not client.parseArguments(argv)):
             client.usage()
             return
@@ -370,9 +369,9 @@ class client:
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         args = (client._server, client._port)
         sock.connect(args)
-        client.shell(sock)
+        self.shell(sock)
         print("+++ FINISHED +++")
 
 
 if __name__ == "__main__":
-    client.main([])
+    client().main([])
