@@ -74,7 +74,11 @@ void *funcion_hilo(void *arg) {
     }
     char response[2];
     snprintf(response, sizeof(response), "%d", resp);
-    sendMessage(sc, response, sizeof(response));
+    ret = sendMessage(sc, response, sizeof(response));
+    if (ret == -1) {
+        printf("Error en envío respuesta desdf el servidor\n");
+        exit(-1) ;
+    }
     close(sc);
     pthread_exit(NULL);
 
