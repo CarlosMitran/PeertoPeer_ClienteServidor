@@ -1,7 +1,7 @@
 
 BIN_FILES  =  servidor
 
-HEADER_FILE = comm.h
+HEADER_FILE = comm.h libserver.h
 
 CC = gcc
 
@@ -14,11 +14,11 @@ LDLIBS = -lpthread -lrt -lclaves
 all:  libclaves.so  servidor
 .PHONY : all
 
-libclaves.so: comm.o
+libclaves.so: comm.o libserver.o
 	$(CC) -shared -fPIC $(CPPFLAGS) $^ -o libclaves.so
 
 
-servidor: servidor.o comm.o
+servidor: servidor.o comm.o libserver.o
 	$(CC) $(CPPFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 
 

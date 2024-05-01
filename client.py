@@ -4,15 +4,14 @@ import socket
 import sys
 
 
-class client :
+class client:
     def __init__(self):
         client.user = ""
-
 
     # ******************** TYPES *********************
     # *
     # * @brief Return codes for the protocol methods
-    class RC(Enum) :
+    class RC(Enum):
         OK = 0
         ERROR = 1
         USER_ERROR = 2
@@ -27,11 +26,17 @@ class client :
         try:
             # Enviar nombre al servidor y el comando
             command = 'REGISTER\0'
+            print("sending comand")
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            print("command sent")
             response_code = sock.recv(1).decode('utf-8')
-
+            print("response code is ", response_code)
             if response_code == '0':
                 print("c> REGISTER OK")
                 return client.RC.OK
@@ -46,13 +51,16 @@ class client :
         except:
             return client.RC.ERROR
 
-
     def unregister(self, sock):
         try:
             # Enviar nombre al servidor y el comando
             command = 'UNREGISTER\0'
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
@@ -68,7 +76,6 @@ class client :
         except:
             return client.RC.ERROR
 
-
     def connect(self, sock):
         try:
             # Enviar nombre al servidor y el comando
@@ -76,7 +83,12 @@ class client :
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
+            print(response_code)
 
             if response_code == '0':
                 print("c> CONNECT OK")
@@ -106,6 +118,10 @@ class client :
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
 
             if response_code == '0':
@@ -123,7 +139,6 @@ class client :
         except:
             return client.RC.ERROR
 
-
     def publish(self, fileName, description, sock):
         try:
             if self.user == "":
@@ -132,9 +147,19 @@ class client :
             # Enviar nombre al servidor y el comando
             command = 'PUBLISH\0'
             sock.sendall(command.encode('utf-8'))
-            file_bytes = bytes(fileName + description + '\0', 'utf8')
+            #Enviar user
+            file_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(file_bytes)
+            #Enviar Filename
+            file_bytes = bytes(fileName + '\0', 'utf8')
+            sock.sendall(file_bytes)
+            #Enviar descripción
+            file_bytes = bytes(description + '\0', 'utf8')
+            sock.sendall(file_bytes)
+
             response_code = sock.recv(1).decode('utf-8')
+
+            print("response code is", response_code)
 
             if response_code == '0':
                 print("c> PUBLISH OK")
@@ -153,8 +178,6 @@ class client :
                 return client.RC.ERROR
         except:
             return client.RC.ERROR
-
-
 
     def delete(self, fileName, sock):
         try:
@@ -186,7 +209,6 @@ class client :
         except:
             return client.RC.ERROR
 
-
     def listusers(self, sock):
         try:
             if self.user == "":
@@ -213,12 +235,10 @@ class client :
         except:
             return client.RC.ERROR
 
-
     @staticmethod
     def listcontent(user):
         #  Write your code here
         return client.RC.ERROR
-
 
     def getfile(self, remote_FileName, local_FileName, sock):
         try:
@@ -242,7 +262,6 @@ class client :
                 return client.RC.ERROR
         except:
             return client.RC.ERROR
-
 
     # * @brief Command interpreter for the client. It calls the protocol functions.
     def shell(self):
@@ -294,9 +313,8 @@ class client :
 
     # * @brief Prints program usage
     @staticmethod
-    def usage() :
+    def usage():
         print("Usage: python3 client.py -s <server> -p <port>")
-
 
     # * @brief Parses program execution arguments
     @staticmethod
@@ -316,14 +334,14 @@ class client :
         client._port = args.p
         return True
 
-
     # ******************** MAIN *********************
     def main(self, argv):
         if (not client.parseArguments(argv)):
             client.usage()
             return
-        
+
         self.shell()
+
         print("+++ FINISHED +++")
 
 

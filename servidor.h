@@ -5,9 +5,12 @@
 #ifndef FINAL_DISTRIBUIDOS_SERVIDOR_H
 #define FINAL_DISTRIBUIDOS_SERVIDOR_H
 
-int exist(const char *usuario);
 int register_user(const char *usuario);
 int connect_user(const char *usuario);
+int unregister_user(const char *username);
+int disconnect_user(const char *username);
+int publish(const char *username, char filename[256], char descripcion[256]);
+int add_values(const char *username, char filename[256], char descripcion[256]);
 
 
 #endif //FINAL_DISTRIBUIDOS_SERVIDOR_H
