@@ -36,55 +36,54 @@ void *funcion_hilo(void *arg) {
     char descripcion[256];
     char command[256];
 
-    //Leer comando
-    
-    ret = readLine(sc, command, 256);
-    if (ret < 0 ||(
-        strcmp(command, "REGISTER") != 0 && strcmp(command, "UNREGISTER") != 0 && strcmp(command, "CONNECT") != 0
-        && strcmp(command, "PUBLISH") != 0 && strcmp(command, "DELETE") != 0 && strcmp(command, "LIST_USERS") &&
-        strcmp(command, "LIST_CONTENT")
-        && strcmp(command, "DISCONNECT") && strcmp(command, "GET_FILE") && strcmp(command, "QUIT"))) {
-        printf("s> Error en recepción de comando o comando no soportado\n");
-        close(sc);
-        pthread_exit(NULL);
-    }
-
-    // Leer nombre usuario
-    if (readLine(sc, usuario, sizeof(usuario)) < 0) {
-        printf("s> Error en recepción de username\n");
-        close(sc);
-        pthread_exit(NULL);
-    }
-
-    printf("s> OPERACION FROM: %s\n", usuario);
-    resp = init();
-
-    if (strcmp(command, "REGISTER") == 0)
-    {
-        resp = register_user(usuario);
-    }
-    else if (strcmp(command, "CONNECT") == 0){
-        resp = connect_user(usuario);
-    }
+    while (1) {
+        //Leer comando
+        ret = readLine(sc, command, sizeof(command));
+        if (ret <= 0 ) {
+            printf("s> Error en recepción de comando o comando no soportado\n");
+            //pthread_exit(NULL);
+        }
         
-    ret = readLine(sc,filename , 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        pthread_exit(NULL);
+        resp = init();
+        // Leer nombre usuario
+        if (readLine(sc, usuario, sizeof(usuario)) < 0) {
+            printf("s> Error en recepción de username\n");
+            close(sc);
+            pthread_exit(NULL);
+        }
+        printf("s> OPERACION FROM: %s\n", usuario);
+        
+        
+        if (strcmp(command, "REGISTER") == 0)
+        {
+            resp = register_user(usuario);
+        }
+        else if (strcmp(command, "CONNECT") == 0){
+            resp = connect_user(usuario);
+        }
+        char response[2];
+        snprintf(response, sizeof(response), "%d", resp);
+        response[1] = '\0';
+        ret = sendMessage(sc, response, 2);
+        if (ret == -1) {
+            printf("Error en envío respuesta desdf el servidor\n");
+            exit(-1) ;
+        }
+
+        ret = readLine(sc,filename , 256);
+        if (ret < 0) {
+            printf("Error en recepción op\n");
+            pthread_exit(NULL);
+        }
+
+        ret = readLine(sc, descripcion, 256);
+        if (ret < 0) {
+            printf("Error en recepción op\n");
+            pthread_exit(NULL);
+        }
+        
     }
 
-    ret = readLine(sc, descripcion, 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        pthread_exit(NULL);
-    }
-    char response[2];
-    snprintf(response, sizeof(response), "%d", resp);
-    ret = sendMessage(sc, response, sizeof(response));
-    if (ret == -1) {
-        printf("Error en envío respuesta desdf el servidor\n");
-        exit(-1) ;
-    }
     close(sc);
     pthread_exit(NULL);
 
@@ -121,10 +120,7 @@ int register_user(const char *username) {
         return -1; // Error al abrir archivo
     }
 
-
-
     if (!found) {
-        printf("not found");
         // Si no se encontró, añadir al final
         fseek(fp, 0, SEEK_END);
         fprintf(fp, "@%s\n", username);
@@ -132,7 +128,7 @@ int register_user(const char *username) {
 
     fclose(fp);
     pthread_mutex_unlock(&mutex_file);
-    return found ? 1 : 0; // 1 si el usuario ya existía, 0 si se añadió
+    return found ; // 1 si el usuario ya existía, 0 si se añadió
 }
 
 int connect_user(char *usuario) {
