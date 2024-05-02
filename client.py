@@ -214,26 +214,48 @@ class client:
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
                 return client.RC.USER_ERROR
+
             # Enviar nombre al servidor y el comando
             command = 'LIST_USERS\0'
             sock.sendall(command.encode('utf-8'))
+            sock.sendall(self.user.encode('utf-8') + b'\0')  # enviar el usuario solicitante
             response_code = sock.recv(1).decode('utf-8')
 
             if response_code == '0':
-                #FALTA CODIGO EN EL PRINT 
+                # Recibir el número de usuarios
+                number_of_users = ""
+                char = sock.recv(1).decode('utf-8')
+                while char != '\0':
+                    number_of_users += char
+                    char = sock.recv(1).decode('utf-8')
+                number_of_users = int(number_of_users)
+
                 print("c> LIST_USERS OK")
+                print(f"Number of connected users: {number_of_users}")
+
+                # Recibir la información de cada usuario conectado
+                for _ in range(number_of_users):
+                    user_info = ""
+                    char = sock.recv(1).decode('utf-8')
+                    while char != '\0':
+                        user_info += char
+                        char = sock.recv(1).decode('utf-8')
+                    print(user_info)
+
                 return client.RC.OK
             elif response_code == '1':
-                print("c> LIST_USERS FAIL , USER DOES NOT EXIST")
+                print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
                 return client.RC.USER_ERROR
             elif response_code == '2':
-                print("c> LIST_USERS FAIL , USER NOT CONNECTED")
+                print("c> LIST_USERS FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             else:
                 print("c> LIST_USERS FAIL")
                 return client.RC.ERROR
-        except:
+        except Exception as e:
+            print(f"c> LIST_USERS EXCEPTION: {e}")
             return client.RC.ERROR
+
 
     @staticmethod
     def listcontent(user):

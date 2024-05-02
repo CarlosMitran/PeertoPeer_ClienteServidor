@@ -71,6 +71,7 @@ void *funcion_hilo(void *arg) {
     else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario); }
     else if (strcmp(command, "DISCONNECT") == 0) { resp = disconnect_user(usuario); }
     else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
+    else if (strcmp(command, "LIST_USERS") == 0) {printf("en listusers"); resp = list_users(sc,usuario); }
     else{resp = -1;}
 
     char response[2];
@@ -78,7 +79,7 @@ void *funcion_hilo(void *arg) {
     ret = sendMessage(sc, response, 2);
 
     if (ret == -1) {
-        printf("Error en envío respuesta desdf el servidor\n");
+        printf("Error en envío respuesta desde el servidor\n");
         exit(-1);
     }
     }
@@ -87,8 +88,6 @@ void *funcion_hilo(void *arg) {
     pthread_exit(NULL);
 
 }
-
-
 
 int register_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
@@ -125,12 +124,8 @@ int connect_user(const char *username) {
 
 
 int disconnect_user(const char *username) {
-
-
     pthread_mutex_lock(&mutex_file);
-
     int found = delete_user(username, "connected_usr.txt");
-
     pthread_mutex_unlock(&mutex_file);
 
     return found ? 0 : 1; 
@@ -146,6 +141,55 @@ int publish(const char *username, char filename[256], char descripcion[256]){
     }
     return found;
 }
+
+int list_users(int sc, const char *username) {
+    pthread_mutex_lock(&mutex_file);
+    FILE *fp = fopen("connected_usr.txt", "r");
+    if (!fp) {
+        pthread_mutex_unlock(&mutex_file);
+        return 3; 
+    }
+
+    char line[256];
+    int found = 0;
+    int count = 0;
+
+    // Verificar si el usuario está conectado y contar los usuarios conectados
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = 0; 
+        if (strcmp(line, username) == 0) {
+            found = 1;
+        }
+        count++;
+    }
+    printf("Contador %d \n", count);
+
+    if (!found) {
+        fclose(fp);
+        pthread_mutex_unlock(&mutex_file);
+        printf("usuario no conectado");
+        return 2; // Usuario no  conectado
+    }
+
+    // Reposicionar al inicio del archivo para enviar datos
+    rewind(fp);
+    char countStr[16];
+    snprintf(countStr, sizeof(countStr), "%d", count);
+    sendMessage(sc, countStr, strlen(countStr) + 1);
+
+    // Enviar información de cada usuario conectado
+    while (fgets(line, sizeof(line), fp)) {
+        line[strcspn(line, "\n")] = 0; 
+        printf("enviar info de usuarios");
+        sendMessage(sc, line, strlen(line) + 1);
+    }
+
+    fclose(fp);
+    pthread_mutex_unlock(&mutex_file);
+    return 0; 
+}
+
+
 
 
 int main( int argc, char *argv[] ) {
