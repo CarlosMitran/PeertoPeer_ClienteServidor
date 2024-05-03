@@ -119,7 +119,7 @@ int connect_user(const char *username) {
 
     pthread_mutex_unlock(&mutex_file);
 
-    return is_connected ? 2 : 0; // Devuelve 2 si ya estaba conectado, 0 si se conectó ahora
+    return is_connected ; // Devuelve 2 si ya estaba conectado, 0 si se conectó ahora
 }
 
 
