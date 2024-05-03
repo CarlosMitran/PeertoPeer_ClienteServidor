@@ -24,6 +24,7 @@ int mensaje_copiado = 0;
 int file = 1;
 
 
+
 void *funcion_hilo(void *arg) {
     int sc = *(int *) arg;
     free(arg);
@@ -34,6 +35,12 @@ void *funcion_hilo(void *arg) {
     char filename[256];
     char descripcion[256];
     char command[256];
+
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    getpeername(sc, (struct sockaddr *)&addr, &addr_size);
+    char *ip = inet_ntoa(addr.sin_addr);
+    int port = ntohs(addr.sin_port);
 
     //Leer comando
     while(1){
@@ -68,7 +75,7 @@ void *funcion_hilo(void *arg) {
 
     if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
     else if (strcmp(command, "UNREGISTER") == 0) { resp = unregister_user(usuario); }
-    else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario); }
+    else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
     else if (strcmp(command, "DISCONNECT") == 0) { resp = disconnect_user(usuario); }
     else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
     else if (strcmp(command, "LIST_USERS") == 0) {printf("en listusers"); resp = list_users(sc,usuario); }
@@ -93,7 +100,7 @@ int register_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
     int found = insert_value(username, "reg_users.txt");
     pthread_mutex_unlock(&mutex_file);
-    return found ; // 1 si el usuario ya existía, 0 si se añadió
+    return found ; 
 }
 
 int unregister_user(const char *username) {
@@ -101,25 +108,30 @@ int unregister_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
     if ((user_found = delete_user(username, "reg_users.txt")) == -1){return -1;}
     pthread_mutex_unlock(&mutex_file);
-    return user_found ? 0 : 1;  // Devuelve 0 si el usuario fue eliminado, 1 si no se encontró
+    return user_found ; 
 }
 
-int connect_user(const char *username) {
+int connect_user(const char *username, const char *ip, int port ) {
     int is_connected;
     int found;
     pthread_mutex_lock(&mutex_file);
     if (exist(username, "reg_users.txt")!=1){
         fprintf(stderr, "s> Usuario no registado, debes registrarte antes de conectarte\n");
+        pthread_mutex_unlock(&mutex_file);
         return -1;
     }
-    found = insert_value(username, "connected_usr.txt");
+
+    char record[1024];
+    snprintf(record, sizeof(record), "%s %s %d", username, ip, port);
+    found = insert_value(record, "connected_usr.txt");
+
     if (found == 1){is_connected = 2;}
     else if (found == -1){return -1;}
     else{is_connected = 0;}
 
     pthread_mutex_unlock(&mutex_file);
 
-    return is_connected ; // Devuelve 2 si ya estaba conectado, 0 si se conectó ahora
+    return is_connected ; 
 }
 
 
@@ -128,7 +140,7 @@ int disconnect_user(const char *username) {
     int found = delete_user(username, "connected_usr.txt");
     pthread_mutex_unlock(&mutex_file);
 
-    return found ? 0 : 1; 
+    return found; 
 }
 
 
