@@ -2,7 +2,7 @@ from enum import Enum
 import argparse
 import socket
 import sys
-
+import threading
 
 class client:
     def __init__(self):
@@ -262,17 +262,29 @@ class client:
         #  Write your code here
         return client.RC.ERROR
 
-    def getfile(self, remote_FileName, local_FileName, sock):
+    def getfile(self, server, port, remote_FileName, local_FileName, sock):
+        server_address = (server, int(port))
+        print('conectando a {} y puerto {}'.format(*server_address))
+        sock.connect(server_address)
         try:
-            # Enviar nombre al servidor y el comando
-            command = 'GET_FILE\0'
-            sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(self.user + '\0', 'utf8')
-            sock.sendall(user_bytes)
-            file_bytes = bytes(remote_FileName + local_FileName + '\0', 'utf8')
-            sock.sendall(file_bytes)
-            response_code = sock.recv(1).decode('utf-8')
+            #Cuando se conecte al servidor real se deben descomentar estas líneas
+            #command = 'GET_FILE\0'
+            #sock.sendall(command.encode('utf-8'))
+            message = bytes(remote_FileName + '\0', 'utf8')
+            sock.sendall(message)
+            filename = local_FileName
+            fo = open(filename, "w")
+            while True:
+                msg = sock.recv(1024).decode('utf-8')
+                recv_len = len(msg)
+                if recv_len < 1024:
+                    fo.write(msg)
+                    break
+                fo.write(msg)
+                if '\0' in msg:
+                    break
 
+            response_code = sock.recv(1).decode('utf-8')
             if response_code == '0':
                 print("c> GET_FILE OK")
                 return client.RC.OK
@@ -282,15 +294,15 @@ class client:
             else:
                 print("c> GET_FILE FAIL")
                 return client.RC.ERROR
-        except:
-            return client.RC.ERROR
+
+        finally:
+            sock.close()
+
 
     # * @brief Command interpreter for the client. It calls the protocol functions.
     def shell(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            sock.connect((self._server, self._port))
-
             while True:
                 try:
                     command = input("c> ")
@@ -320,8 +332,8 @@ class client:
                     elif action == "DISCONNECT" and len(line) == 2:
                         self.user = line[1]
                         self.disconnect(sock)
-                    elif action == "GET_FILE" and len(line) == 4:
-                        self.getfile(line[1], line[2], line[3], sock)
+                    elif action == "GET_FILE" and len(line) == 5:
+                        self.getfile(line[1], line[2], line[3], line[4], sock)
                     elif action == "QUIT" and len(line) == 1:
                         break
                     else:
@@ -356,7 +368,7 @@ class client:
         client._port = args.p
         return True
 
-    # ******************** MAIN *********************
+# ******************** MAIN *********************
     def main(self, argv):
         if (not client.parseArguments(argv)):
             client.usage()
