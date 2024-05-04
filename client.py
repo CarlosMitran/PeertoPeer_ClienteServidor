@@ -63,16 +63,16 @@ class client:
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
-
+            print("response code is ", response_code)
             if response_code == '0':
                 print("c> UNREGISTER OK")
                 return client.RC.OK
             elif response_code == '1':
                 print("c> USER DOES NOT EXIST")
-                return client.RC.USER_ERROR
+                return client.RC.ERROR
             else:
                 print("c> UNREGISTER FAIL")
-                return client.RC.ERROR
+                return client.RC.USER_ERROR
         except:
             return client.RC.ERROR
 

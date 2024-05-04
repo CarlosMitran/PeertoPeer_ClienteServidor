@@ -45,12 +45,13 @@ int exist(const char *usuario, const char *file) {
 
 
 int delete_user(const char *username, const char *file) {
-    if ((exist(username, file)) == 0) {
-        return 1;
-    }
-    int deleting = 0;
+
+    int found = 0;
     char buf[MAX_LINE_LEN];
     FILE *fpold, *fpnew;
+    char expected_username[MAX_LINE_LEN];
+    sprintf(expected_username, "@%s", username); 
+
     fpold = fopen(file, "r");
     if (fpold == NULL) {
         return -1;
@@ -61,27 +62,28 @@ int delete_user(const char *username, const char *file) {
         return -1;
     }
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
-        if (buf[0] == '@') {
-            if (buf[0] == '@' && strcmp(buf + 1, username) == 0) {
-            deleting = 1; 
-            } else {
-            fprintf(fpnew, "%s", buf); 
-            }
+        buf[strcspn(buf, "\n")] = 0;
+        if (strcmp(buf, expected_username) != 0) {
+            fprintf(fpnew, "%s\n", buf);  // Escribir la línea como estaba
+        } else {
+            found = 1; // Se encontró el usuario y no se copia a temp
         }
     }
 
     fclose(fpold);
     fclose(fpnew);
 
-    if (remove(file) != 0) {
-        perror("Error removing original file");
-        return -1;
+   if (found) {
+        if (remove(file) != 0 || rename("temp.txt", file) != 0) {
+            perror("Error al actualizar el archivo de usuarios");
+            return -1;
+        }
+    } else {
+        // Eliminar el archivo temporal si no se encontró el usuario
+        remove("temp.txt");
     }
-    if (rename("temp.txt", file) != 0) {
-        perror("Error renaming file");
-        return -1;
-    }
-    return deleting;
+    return found ? 0 : 1;
+
 }
 
 int insert_value(const char *username, const char *file){

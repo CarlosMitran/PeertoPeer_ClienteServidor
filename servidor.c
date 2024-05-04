@@ -44,7 +44,6 @@ void *funcion_hilo(void *arg) {
         if (ret <= 0) {
             printf("s> Error en recepción de comando o comando no soportado\n");
             break;
-            //pthread_exit(NULL);
         }
 
         if (strcmp(command, "QUIT") == 0) {
@@ -60,13 +59,13 @@ void *funcion_hilo(void *arg) {
 
         ret = readLine(sc, filename, 256);
         if (ret < 0) {
-            printf("Error en recepción op\n");
+            printf("Error en recepción filename\n");
             pthread_exit(NULL);
         }
 
         ret = readLine(sc, descripcion, 256);
         if (ret < 0) {
-            printf("Error en recepción op\n");
+            printf("Error en recepción descripcion\n");
             pthread_exit(NULL);
         }
 
