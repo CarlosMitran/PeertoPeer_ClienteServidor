@@ -20,10 +20,6 @@ pthread_mutex_t mutex_mensaje;
 pthread_mutex_t mutex_file;
 pthread_cond_t cond_mensaje;
 pthread_cond_t cond_file;
-int mensaje_copiado = 0;
-int file = 1;
-
-
 
 void *funcion_hilo(void *arg) {
     int sc = *(int *) arg;
@@ -44,53 +40,54 @@ void *funcion_hilo(void *arg) {
 
     //Leer comando
     while(1){
-    ret = readLine(sc, command, sizeof(command));
-    if (ret <= 0) {
-        printf("s> Error en recepción de comando o comando no soportado\n");
-        //pthread_exit(NULL);
+        ret = readLine(sc, command, sizeof(command));
+        if (ret <= 0) {
+            printf("s> Error en recepción de comando o comando no soportado\n");
+            break;
+            //pthread_exit(NULL);
+        }
+
+        if (strcmp(command, "QUIT") == 0) {
+            break;
+        }
+        // Leer nombre usuario
+        if (readLine(sc, usuario, sizeof(usuario)) < 0) {
+            printf("s> Error en recepción de username\n");
+            close(sc);
+            pthread_exit(NULL);
+        }
+        printf("s> OPERACION FROM: %s\n", usuario);
+
+        ret = readLine(sc, filename, 256);
+        if (ret < 0) {
+            printf("Error en recepción op\n");
+            pthread_exit(NULL);
+        }
+
+        ret = readLine(sc, descripcion, 256);
+        if (ret < 0) {
+            printf("Error en recepción op\n");
+            pthread_exit(NULL);
+        }
+
+        if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
+        else if (strcmp(command, "UNREGISTER") == 0) { resp = unregister_user(usuario); }
+        else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
+        else if (strcmp(command, "DISCONNECT") == 0) { resp = disconnect_user(usuario); }
+        else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
+        else if (strcmp(command, "LIST_USERS") == 0) {printf("en listusers"); resp = list_users(sc,usuario); }
+        else{resp = -1;}
+
+        char response[2];
+        snprintf(response, sizeof(response), "%d", resp);
+        response[1] = '\0';
+        ret = sendMessage(sc, response, strlen(response));
+
+        if (ret == -1) {
+            printf("Error en envío respuesta desde el servidor\n");
+            exit(-1);
+        }
     }
-
-    init();
-
-    // Leer nombre usuario
-    if (readLine(sc, usuario, sizeof(usuario)) < 0) {
-        printf("s> Error en recepción de username\n");
-        close(sc);
-        pthread_exit(NULL);
-    }
-    printf("s> OPERACION FROM: %s\n", usuario);
-
-
-    ret = readLine(sc, filename, 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        pthread_exit(NULL);
-    }
-
-    ret = readLine(sc, descripcion, 256);
-    if (ret < 0) {
-        printf("Error en recepción op\n");
-        pthread_exit(NULL);
-    }
-
-    if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
-    else if (strcmp(command, "UNREGISTER") == 0) { resp = unregister_user(usuario); }
-    else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
-    else if (strcmp(command, "DISCONNECT") == 0) { resp = disconnect_user(usuario); }
-    else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
-    else if (strcmp(command, "LIST_USERS") == 0) {printf("en listusers"); resp = list_users(sc,usuario); }
-    else{resp = -1;}
-
-    char response[2];
-    snprintf(response, sizeof(response), "%d", resp);
-    ret = sendMessage(sc, response, 2);
-
-    if (ret == -1) {
-        printf("Error en envío respuesta desde el servidor\n");
-        exit(-1);
-    }
-    }
-
     close(sc);
     pthread_exit(NULL);
 
@@ -98,9 +95,15 @@ void *funcion_hilo(void *arg) {
 
 int register_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
-    int found = insert_value(username, "reg_users.txt");
+    int result;
+
+    if (exist(username, "reg_users.txt") == 1) {
+        pthread_mutex_unlock(&mutex_file);
+        return 1;
+    }
+    result = insert_value(username, "reg_users.txt");
     pthread_mutex_unlock(&mutex_file);
-    return found ; 
+    return result;
 }
 
 int unregister_user(const char *username) {
@@ -112,26 +115,22 @@ int unregister_user(const char *username) {
 }
 
 int connect_user(const char *username, const char *ip, int port ) {
-    int is_connected;
     int found;
     pthread_mutex_lock(&mutex_file);
     if (exist(username, "reg_users.txt")!=1){
         fprintf(stderr, "s> Usuario no registado, debes registrarte antes de conectarte\n");
         pthread_mutex_unlock(&mutex_file);
-        return -1;
+        return 1; //Usuario no existe
     }
 
     char record[1024];
-    snprintf(record, sizeof(record), "%s %s %d", username, ip, port);
+    sprintf(record, "%s %s %d", username, ip, port);
     found = insert_value(record, "connected_usr.txt");
-
-    if (found == 1){is_connected = 2;}
-    else if (found == -1){return -1;}
-    else{is_connected = 0;}
-
     pthread_mutex_unlock(&mutex_file);
 
-    return is_connected ; 
+    if (found == 0){return 0;} //Usuario añadido
+    else if (found == 1){return 2;} //Usuario ya conectado
+    else{return -1;}
 }
 
 
@@ -157,19 +156,15 @@ int publish(const char *username, char filename[256], char descripcion[256]){
 int list_users(int sc, const char *username) {
     pthread_mutex_lock(&mutex_file);
     FILE *fp = fopen("connected_usr.txt", "r");
-    if (!fp) {
-        pthread_mutex_unlock(&mutex_file);
-        return 3; 
-    }
-
+    
     char line[256];
     int found = 0;
     int count = 0;
 
     // Verificar si el usuario está conectado y contar los usuarios conectados
     while (fgets(line, sizeof(line), fp)) {
-        line[strcspn(line, "\n")] = 0; 
-        if (strcmp(line, username) == 0) {
+        char* token = strtok(line, " ");
+        if (token && strcmp(token, username) == 0) {
             found = 1;
         }
         count++;
@@ -192,6 +187,7 @@ int list_users(int sc, const char *username) {
     // Enviar información de cada usuario conectado
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = 0; 
+        strcat(line, "\0");
         printf("enviar info de usuarios");
         sendMessage(sc, line, strlen(line) + 1);
     }
@@ -201,10 +197,8 @@ int list_users(int sc, const char *username) {
     return 0; 
 }
 
-
-
-
 int main( int argc, char *argv[] ) {
+    init();
     init_connections();
     int port = 0;
     int sd, sc;

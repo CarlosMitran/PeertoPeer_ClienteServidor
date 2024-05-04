@@ -43,11 +43,11 @@ class client:
             elif response_code == '1':
                 print("c> USERNAME IN USE")
                 self.user = ""
-                return client.RC.USER_ERROR
+                return client.RC.ERROR
             else:
                 print("c> REGISTER FAIL")
                 self.user = ""
-                return client.RC.ERROR
+                return client.RC.USER_ERROR
         except:
             return client.RC.ERROR
 
@@ -250,6 +250,7 @@ class client:
                 print("c> LIST_USERS FAIL, USER NOT CONNECTED")
                 return client.RC.USER_ERROR
             else:
+                print("no se puede abrir")
                 print("c> LIST_USERS FAIL")
                 return client.RC.ERROR
         except Exception as e:
@@ -363,7 +364,6 @@ class client:
             return
 
         self.shell()
-
         print("+++ FINISHED +++")
 
 
