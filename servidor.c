@@ -132,15 +132,12 @@ int connect_user(const char *username, const char *ip, int port ) {
     else{return -1;}
 }
 
-
 int disconnect_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
     int found = delete_user(username, "connected_usr.txt");
     pthread_mutex_unlock(&mutex_file);
-
     return found; 
 }
-
 
 int publish(const char *username, char filename[256], char descripcion[256]){
     pthread_mutex_lock(&mutex_file);

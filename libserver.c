@@ -48,7 +48,6 @@ int exist(const char *usuario, const char *file) {
 
 
 int delete_user(const char *username, const char *file) {
-
     int found = 0;
     char buf[MAX_LINE_LEN];
     FILE *fpold, *fpnew;
@@ -66,27 +65,38 @@ int delete_user(const char *username, const char *file) {
     }
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
         buf[strcspn(buf, "\n")] = 0;
+
+        //comprobar solo el nombre e ignorar el puerto y la IP
+        char *espacio = strchr(buf, ' ');
+        if (espacio != NULL) {
+            *espacio = '\0';  
+        }
+
         if (strcmp(buf, expected_username) != 0) {
-            fprintf(fpnew, "%s\n", buf);  // Escribir la línea como estaba
+            if (espacio != NULL) {
+                *espacio = ' '; // Restaurar espacio
+            }
+            //Escribir en archivo temporal
+            fprintf(fpnew, "%s\n", buf); 
         } else {
-            found = 1; // Se encontró el usuario y no se copia a temp
+            found = 1;
         }
     }
 
     fclose(fpold);
     fclose(fpnew);
 
-   if (found) {
+   if (found ) {
         if (remove(file) != 0 || rename("temp.txt", file) != 0) {
             perror("Error al actualizar el archivo de usuarios");
             return -1;
         }
+
     } else {
         // Eliminar el archivo temporal si no se encontró el usuario
         remove("temp.txt");
     }
-    return found ? 0 : 1;
-
+    return found ? 0 : 1; 
 }
 
 int insert_value(const char *username, const char *file){
@@ -151,6 +161,4 @@ int add_values(const char *username, char filename[256], char descripcion[256]){
         return -1;
     }
     return 0;
-
-
 }

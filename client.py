@@ -63,7 +63,7 @@ class client:
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
-            print("response code is ", response_code)
+            
             if response_code == '0':
                 print("c> UNREGISTER OK")
                 return client.RC.OK
@@ -88,8 +88,7 @@ class client:
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
-            print("response code %s", response_code)
-            
+
             if response_code == '0':
                 print("c> CONNECT OK")
                 return client.RC.OK
@@ -123,7 +122,7 @@ class client:
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
-
+            print("response code is ", response_code)
             if response_code == '0':
                 print("c> DISCONNECT OK")
                 return client.RC.OK
