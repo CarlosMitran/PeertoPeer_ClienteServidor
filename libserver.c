@@ -33,8 +33,11 @@ int exist(const char *usuario, const char *file) {
     }
 
     char line[1024];
+    char expected_username[1024];
+    sprintf(expected_username, "@%s", usuario);
+
     while (fgets(line, sizeof(line), fp) != NULL) {
-        if (strstr(line, usuario) != NULL) {
+        if (strstr(line, expected_username) != NULL) {
             fclose(fp);
             return 1; // Usuario encontrado.
         }
@@ -93,7 +96,7 @@ int insert_value(const char *username, const char *file){
     if (!fp) {
         fp = fopen(file, "w");
         if (!fp) {
-            return 3; // Error al abrir archivo
+            return -1; // Error al abrir archivo
         }
     }
 
@@ -101,8 +104,7 @@ int insert_value(const char *username, const char *file){
     if (exists == 1){
         fclose(fp); 
         return 1; //Usuario ya esta en el archivo
-    }
-    else if (exists == -1){
+    } else if (exists == -1){
         fclose(fp); 
         return -1; //Error 
     }
