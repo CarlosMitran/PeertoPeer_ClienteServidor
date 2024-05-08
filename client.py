@@ -63,7 +63,7 @@ class client:
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
             response_code = sock.recv(1).decode('utf-8')
-            
+
             if response_code == '0':
                 print("c> UNREGISTER OK")
                 return client.RC.OK
@@ -121,7 +121,7 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
-            response_code = sock.recv(1).decode('utf-8')
+            response_code = sock.recv(2).decode('utf-8')
             print("response code is ", response_code)
             if response_code == '0':
                 print("c> DISCONNECT OK")
@@ -186,10 +186,13 @@ class client:
             # Enviar nombre al servidor y el comando
             command = 'DELETE\0'
             sock.sendall(command.encode('utf-8'))
-            file_bytes = bytes(fileName + '\0', 'utf8')
-            sock.sendall(file_bytes)
-            response_code = sock.recv(1).decode('utf-8')
-
+            user_bytes = bytes(self.user + '\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(fileName + '\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            response_code = sock.recv(3).decode('utf-8')
             if response_code == '0':
                 print("c> DELETE OK")
                 return client.RC.OK
@@ -209,6 +212,11 @@ class client:
             return client.RC.ERROR
 
     def listusers(self, sock):
+        counter = 0
+        finalmessage = ""
+        number_of_users = 0
+        response_code = -1
+        end = 0
         try:
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
@@ -217,50 +225,125 @@ class client:
             # Enviar nombre al servidor y el comando
             command = 'LIST_USERS\0'
             sock.sendall(command.encode('utf-8'))
-            sock.sendall(self.user.encode('utf-8') + b'\0')  # enviar el usuario solicitante
-            response_code = sock.recv(1).decode('utf-8')
+            file_bytes = bytes(self.user + '\0', 'utf8')
+            sock.sendall(file_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            while True:
+                msg = sock.recv(256).decode('utf-8')
+                msgcpy = msg
+                totalmsg = [line for line in msgcpy.split('\n') if line.strip()]
+                for i in totalmsg:
+                    if i[0] == "@":
+                        if len(i) > 2 and i[0:3] == "@IP":
+                            ip = i[3:]
+                        elif len(i) > 4 and i[0:5] == "@PORT":
+                            port = i[5:]
+                            finalmessage = finalmessage + str(user) + " " + str(ip) + " " + str(port) + '\n'
+                            number_of_users += 1
+                        else:
+                            user = i[1:]
+                    else:
+                        response_code = i
+                        end = 1
+                        break
 
-            if response_code == '0':
-                # Recibir el número de usuarios
-                number_of_users = ""
-                char = sock.recv(1).decode('utf-8')
-                while char != '\0':
-                    number_of_users += char
-                    char = sock.recv(1).decode('utf-8')
-                number_of_users = int(number_of_users)
+                if '\0' in msg:
+                    response_code = msg[-1]
+                    break
+                if end == 1:
+                    break
 
-                print("c> LIST_USERS OK")
-                print(f"Number of connected users: {number_of_users}")
-
-                # Recibir la información de cada usuario conectado
-                for _ in range(number_of_users):
-                    user_info = ""
-                    char = sock.recv(1).decode('utf-8')
-                    while char != '\0':
-                        user_info += char
-                        char = sock.recv(1).decode('utf-8')
-                    print(user_info)
-
-                return client.RC.OK
-            elif response_code == '1':
-                print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
-                return client.RC.USER_ERROR
-            elif response_code == '2':
-                print("c> LIST_USERS FAIL, USER NOT CONNECTED")
-                return client.RC.USER_ERROR
-            else:
-                print("no se puede abrir")
-                print("c> LIST_USERS FAIL")
-                return client.RC.ERROR
         except Exception as e:
             print(f"c> LIST_USERS EXCEPTION: {e}")
             return client.RC.ERROR
 
+        if response_code == '0':
+            # Recibir el número de usuarios
+            print("c> LIST_USERS OK")
+            print(f"Number of connected users: {number_of_users}\n")
+            # Recibir la información de cada usuario conectado
+            print(finalmessage)
+            return client.RC.OK
 
-    @staticmethod
-    def listcontent(user):
-        #  Write your code here
-        return client.RC.ERROR
+        elif response_code == '1':
+            print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        elif response_code == '2':
+            print("c> LIST_USERS FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        else:
+            print("no se puede abrir")
+            print("c> LIST_USERS FAIL")
+            return client.RC.ERROR
+
+    def listcontent(self, sock, username):
+        counter = 0
+        finalmessage = ""
+        number_of_users = 0
+        response_code = -1
+        end = 0
+        try:
+            if self.user == "":
+                print("c> DISCONNECT FAIL / CONNECT FIRST")
+                return client.RC.USER_ERROR
+
+            command = 'LIST_CONTENT\0'
+            sock.sendall(command.encode('utf-8'))
+            file_bytes = bytes(self.user + '\0', 'utf8')
+            sock.sendall(file_bytes)
+            user_bytes = bytes(username + '\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+
+            while True:
+                msg = sock.recv(256).decode('utf-8')
+                msgcpy = msg
+                totalmsg = [line for line in msgcpy.split('\n') if line.strip()]
+                totalmsg = [element for element in totalmsg if element != "@"]
+                for i in totalmsg:
+                    if i[0] == "@" and counter == 0:
+                        filename = i[1:]
+                        counter = 1
+                    elif i[0] == "@" and counter == 1:
+                        counter = 0
+                        descriptioname = i[1:]
+                        finalmessage = finalmessage + filename + " " + descriptioname + " " + "\n"
+                    else:
+                        response_code = i
+                        end = 1
+                        break
+
+                if '\0' in msg:
+                    response_code = msg[-1]
+                    break
+                if end == 1:
+                    break
+
+        except Exception as e:
+            print(f"c> LIST_USERS EXCEPTION: {e}")
+            return client.RC.ERROR
+
+        if response_code == '0':
+            # Recibir el número de usuarios
+            print("c> LIST_CONTENT OK")
+            # Recibir la información de cada usuario conectado
+            print(finalmessage)
+            return client.RC.OK
+
+        elif response_code == '1':
+            print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
+            return client.RC.USER_ERROR
+        elif response_code == '2':
+            print("c> LIST_USERS FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        else:
+            print("no se puede abrir")
+            print("c> LIST_USERS FAIL")
+            return client.RC.ERROR
 
     def getfile(self, remote_FileName, local_FileName, sock):
         try:
@@ -316,7 +399,7 @@ class client:
                     elif action == "LIST_USERS" and len(line) == 1:
                         self.listusers(sock)
                     elif action == "LIST_CONTENT" and len(line) == 2:
-                        self.listcontent(line[1])
+                        self.listcontent(sock, line[1])
                     elif action == "DISCONNECT" and len(line) == 2:
                         self.user = line[1]
                         self.disconnect(sock)

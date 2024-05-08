@@ -74,12 +74,14 @@ void *funcion_hilo(void *arg) {
         else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
         else if (strcmp(command, "DISCONNECT") == 0) { resp = disconnect_user(usuario); }
         else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
-        else if (strcmp(command, "LIST_USERS") == 0) {printf("en listusers"); resp = list_users(sc,usuario); }
+        else if (strcmp(command, "LIST_USERS") == 0) {resp = list_users(sc,usuario); }
+        else if(strcmp(command, "DELETE") == 0){resp = delete_file(usuario, filename);}
+        else if(strcmp(command, "LIST_CONTENT") == 0){resp = list_content(sc, filename);}
         else{resp = -1;}
 
-        char response[2];
+        char response[3];
         snprintf(response, sizeof(response), "%d", resp);
-        response[1] = '\0';
+        response[2] = '\0';
         ret = sendMessage(sc, response, strlen(response));
 
         if (ret == -1) {
@@ -100,10 +102,13 @@ int register_user(const char *username) {
         pthread_mutex_unlock(&mutex_file);
         return 1;
     }
-    result = insert_value(username, "reg_users.txt");
+    char usernames[256];
+    sprintf(usernames, "@%s", username);
+    result = insert_value(usernames, "reg_users.txt");
     pthread_mutex_unlock(&mutex_file);
     return result;
 }
+
 
 int unregister_user(const char *username) {
     int user_found;
@@ -113,6 +118,8 @@ int unregister_user(const char *username) {
     return user_found ; 
 }
 
+
+
 int connect_user(const char *username, const char *ip, int port ) {
     int found;
     pthread_mutex_lock(&mutex_file);
@@ -121,27 +128,40 @@ int connect_user(const char *username, const char *ip, int port ) {
         pthread_mutex_unlock(&mutex_file);
         return 1; //Usuario no existe
     }
+    if (exist(username, "connected_usr.txt") == 1){
+        fprintf(stderr, "s> Usuario no registado, debes registrarte antes de conectarte\n");
+        pthread_mutex_unlock(&mutex_file);
+        return 2; //Usuario no existe
+    }
+    char usernames[256];
+    sprintf(usernames, "@%s", username );
+    found = insert_value(usernames, "connected_usr.txt");
 
-    char record[1024];
-    sprintf(record, "%s %s %d", username, ip, port);
-    found = insert_value(record, "connected_usr.txt");
+    insert_value(ip, "connected_usr.txt");
+    char ports[256];
+    sprintf(ports, "%d", port);
+    insert_value(ports, "connected_usr.txt");
+
     pthread_mutex_unlock(&mutex_file);
-
     if (found == 0){return 0;} //Usuario añadido
     else if (found == 1){return 2;} //Usuario ya conectado
     else{return -1;}
 }
 
+
 int disconnect_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
     int found = delete_user(username, "connected_usr.txt");
+    printf("disconnect response is %d\n", found);
     pthread_mutex_unlock(&mutex_file);
     return found; 
 }
 
+
+
 int publish(const char *username, char filename[256], char descripcion[256]){
     pthread_mutex_lock(&mutex_file);
-    int found = add_values(username, filename, descripcion);
+    int found = add_publish_values(username, filename, descripcion);
     pthread_mutex_unlock(&mutex_file);
     if (found == -1){
         return -1;
@@ -149,49 +169,130 @@ int publish(const char *username, char filename[256], char descripcion[256]){
     return found;
 }
 
+
+
+
+
 int list_users(int sc, const char *username) {
     pthread_mutex_lock(&mutex_file);
     FILE *fp = fopen("connected_usr.txt", "r");
-    
-    char line[256];
-    int found = 0;
-    int count = 0;
 
-    // Verificar si el usuario está conectado y contar los usuarios conectados
-    while (fgets(line, sizeof(line), fp)) {
-        char* token = strtok(line, " ");
-        if (token && strcmp(token, username) == 0) {
-            found = 1;
-        }
-        count++;
-    }
-    printf("Contador %d \n", count);
-
-    if (!found) {
-        fclose(fp);
-        pthread_mutex_unlock(&mutex_file);
-        printf("usuario no conectado");
-        return 2; // Usuario no  conectado
-    }
-
-    // Reposicionar al inicio del archivo para enviar datos
-    rewind(fp);
-    char countStr[16];
-    snprintf(countStr, sizeof(countStr), "%d", count);
-    sendMessage(sc, countStr, strlen(countStr) + 1);
+    char buf[256];
+    char temp_buf[265];
+    int counter = 0;
+    int typecounter = 1;
 
     // Enviar información de cada usuario conectado
-    while (fgets(line, sizeof(line), fp)) {
-        line[strcspn(line, "\n")] = 0; 
-        strcat(line, "\0");
-        printf("enviar info de usuarios");
-        sendMessage(sc, line, strlen(line) + 1);
-    }
+    while (fgets(buf, MAX_LINE_LEN, fp)) {
+        if (counter <= 0) {
+            if (buf[0] == '@') {
+                int n = strcspn(buf, "\n");
+                strncpy(temp_buf, buf, n);
+                if (strcmp(temp_buf+1, username) == 0){
+                    counter = 2;
+                    memset(temp_buf, 0, MAX_LINE_LEN);
+                    continue;
+                }
+            }
+        }
+        else{counter = counter-1; continue;}
+        if (typecounter == 1){sprintf(temp_buf, "%s", buf);}
+        if (typecounter == 2){sprintf(temp_buf, "@IP%s",buf);}
+        if (typecounter == 3){sprintf(temp_buf, "@PORT%s", buf); typecounter = 0;}
+        sendMessage(sc, temp_buf, strlen(temp_buf));
 
+        memset(temp_buf, 0, MAX_LINE_LEN);
+
+        typecounter = typecounter + 1;
+    }
     fclose(fp);
     pthread_mutex_unlock(&mutex_file);
     return 0; 
 }
+
+
+int delete_file(const char *username, const char *filename){
+    pthread_mutex_lock(&mutex_file);
+    char buf[256];
+    char temp_buf[256];
+    int found = 0;
+    int counter = 0;
+    FILE *fpold, *fpnew;
+    fpold = fopen("published_content.txt", "r");
+    if (fpold == NULL) {
+        pthread_mutex_unlock(&mutex_file);
+        return 4;
+    }
+    fpnew = fopen("temp.txt", "w");
+    if (fpnew == NULL) {
+        pthread_mutex_unlock(&mutex_file);
+        return 4;
+    }
+    while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
+        int n = strcspn(buf, "\n");
+        strncpy(temp_buf, buf, n);
+        if (strcmp(temp_buf, filename) == 0) {
+            found = 1;
+            counter = 1;
+            memset(temp_buf, 0, MAX_LINE_LEN);
+            continue;
+        }
+        if (counter <= 0){
+            memset(temp_buf, 0, MAX_LINE_LEN);
+            printf("%s", buf);
+            fprintf(fpnew, "%s", buf);
+        }
+        counter = counter -1;
+    }
+
+    fclose(fpold);
+    fclose(fpnew);
+    if (rename("temp.txt", "published_content.txt") != 0) {
+        perror("Error renaming file \n");
+        pthread_mutex_unlock(&mutex_file);
+        return 4;
+    }
+    if (found != 1){
+        pthread_mutex_unlock(&mutex_file);
+        return 3;
+    }
+    pthread_mutex_unlock(&mutex_file);
+    return 0;
+
+}
+
+int list_content(int sc, const char *username){
+    pthread_mutex_lock(&mutex_file);
+    FILE *fp = fopen("published_content.txt", "r");
+
+    char buf[256];
+    char temp_buf[265];
+
+
+    while (fgets(buf, MAX_LINE_LEN, fp)!= NULL) {
+        if (buf[0] == '@') {
+            int n = strcspn(buf, "\n");
+            strncpy(temp_buf, buf, n);
+            if (strcmp(temp_buf+1, username) == 0){
+                memset(temp_buf, 0, MAX_LINE_LEN);
+                while(fgets(buf, MAX_LINE_LEN, fp)!=NULL){
+                    if(buf[0] == '@'){break;}
+                    sprintf(temp_buf, "@%s", buf);
+                    sendMessage(sc, temp_buf, strlen(temp_buf));
+                    memset(temp_buf, 0, MAX_LINE_LEN);
+                }
+                break;
+            }
+            memset(temp_buf, 0, MAX_LINE_LEN);
+        }
+    }
+    fclose(fp);
+    pthread_mutex_unlock(&mutex_file);
+    return 0;
+
+}
+
+
 
 int main( int argc, char *argv[] ) {
     init();

@@ -26,77 +26,79 @@ int init_connections(){
 }
 
 
+
 int exist(const char *usuario, const char *file) {
-    FILE *fp = fopen(file, "r");
-    if (!fp){
-        return -1; //Error 
+    FILE *fp;
+    char buf[MAX_LINE_LEN];
+    char temp_buf[MAX_LINE_LEN];
+    fp = fopen(file, "r");
+    if (fp == NULL) {
+        fclose(fp);
+        return -1;
     }
-
-    char line[1024];
-    char expected_username[1024];
-    sprintf(expected_username, "@%s", usuario);
-
-    while (fgets(line, sizeof(line), fp) != NULL) {
-        if (strstr(line, expected_username) != NULL) {
-            fclose(fp);
-            return 1; // Usuario encontrado.
+    while (fgets(buf, MAX_LINE_LEN, fp) != NULL) {
+        if (buf[0] == '@') {
+            int n = strcspn(buf, "\n");
+            strncpy(temp_buf, buf, n);
+            if (strcmp(temp_buf + 1, usuario) == 0) {
+                fclose(fp);
+                return 1;
+            }
+            memset(temp_buf, 0, MAX_LINE_LEN);
         }
     }
     fclose(fp);
-    return 0; //Usuario no encontrado
+    return 0;
 }
 
 
-int delete_user(const char *username, const char *file) {
-    int found = 0;
+int delete_user(const char *username,const char *file) {
+    if ((exist(username, file)) != 1) {
+        return -1;
+    }
+    int counter = 0;
     char buf[MAX_LINE_LEN];
+    char temp_buf[MAX_LINE_LEN];
     FILE *fpold, *fpnew;
-    char expected_username[MAX_LINE_LEN];
-    sprintf(expected_username, "@%s", username); 
-
     fpold = fopen(file, "r");
     if (fpold == NULL) {
         return -1;
     }
     fpnew = fopen("temp.txt", "w");
     if (fpnew == NULL) {
-        fclose(fpold);
         return -1;
     }
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
-        buf[strcspn(buf, "\n")] = 0;
-
-        //comprobar solo el nombre e ignorar el puerto y la IP
-        char *espacio = strchr(buf, ' ');
-        if (espacio != NULL) {
-            *espacio = '\0';  
-        }
-
-        if (strcmp(buf, expected_username) != 0) {
-            if (espacio != NULL) {
-                *espacio = ' '; // Restaurar espacio
+        printf("%s", buf);
+        if (counter <= 0) {
+            if (buf[0] == '@') {
+                int n = strcspn(buf, "\n");
+                strncpy(temp_buf, buf, n);
+                if (strcmp(temp_buf+1, username) == 0){
+                    counter = 2;
+                    continue;
+                }
+                memset(temp_buf, 0, MAX_LINE_LEN);
             }
-            //Escribir en archivo temporal
-            fprintf(fpnew, "%s\n", buf); 
-        } else {
-            found = 1;
+            printf("%s", buf);
+            fprintf(fpnew, "%s", buf);
+        }
+        else{
+            counter = counter-1;
+            if (buf[0] == '@'){
+                counter = 0;
+                printf("%s", buf);
+                fprintf(fpnew, "%s", buf);
+            }
         }
     }
-
     fclose(fpold);
     fclose(fpnew);
-
-   if (found ) {
-        if (remove(file) != 0 || rename("temp.txt", file) != 0) {
-            perror("Error al actualizar el archivo de usuarios");
-            return -1;
-        }
-
-    } else {
-        // Eliminar el archivo temporal si no se encontró el usuario
-        remove("temp.txt");
+    if (rename("temp.txt", file) != 0) {
+        perror("Error renaming file \n");
+        return 1;
     }
-    return found ? 0 : 1; 
+    return 0;
 }
 
 int insert_value(const char *username, const char *file){
@@ -120,21 +122,21 @@ int insert_value(const char *username, const char *file){
     }
     // Si no se encontró, añadir al final
     fseek(fp, 0, SEEK_END);
-    fprintf(fp, "@%s\n", username);
+    fprintf(fp, "%s\n", username);
     fclose(fp);
     return 0;
 }
 
 
-int add_values(const char *username, char filename[256], char descripcion[256]){
-    if ((exist(username, "reg_users.txt")) == 0){
-        fprintf(stderr, "s> Usuario no encontrado\n");
-        return 1;
+int add_publish_values(const char *username, char filename[256], char descripcion[256]){
+    int found = 1;
+    if ((exist(username, "published_content.txt")) == 0){
+        found = 0;
     }
-
     FILE *fpold, *fpnew;
+    char temp_buf[256];
     char buf[256];
-    fpold = fopen("reg_users.txt", "r");
+    fpold = fopen("published_content.txt", "r");
     if (fpold == NULL) {
         return -1;
     }
@@ -144,21 +146,35 @@ int add_values(const char *username, char filename[256], char descripcion[256]){
     }
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
         if (buf[0] == '@') {
-            if (strcmp(buf+1, username) == 0) {
+            int n = strcspn(buf, "\n");
+            strncpy(temp_buf, buf, n);
+            if (strcmp(temp_buf+1, username) == 0) {
+                fprintf(fpnew, "%s", buf);
                 printf("Found it\n");
                 fprintf(fpnew, "%s\n", filename);
-                fprintf(fpnew, "%s\n", descripcion);
+                fprintf(fpnew, "%s\n\n", descripcion);
+                memset(temp_buf, 0, MAX_LINE_LEN);
+                continue;
             }
+            memset(temp_buf, 0, MAX_LINE_LEN);
         }
         fprintf(fpnew, "%s", buf);
+    }
+    if (found == 0){
+        fprintf(fpnew, "@%s\n", username);
+        fprintf(fpnew, "%s\n", filename);
+        fprintf(fpnew, "%s\n\n", descripcion);
     }
 
     fclose(fpold);
     fclose(fpnew);
-    remove("reg_users.txt");
-    if (rename("temp.txt", "reg_users.txt") != 0) {
+    remove("published_content.txt");
+    if (rename("temp.txt", "published_content.txt") != 0) {
         perror("Error renaming file \n");
         return -1;
     }
     return 0;
 }
+
+
+
