@@ -49,13 +49,9 @@ void *funcion_hilo(void *arg) {
         if (length > 0 && command[length - 1] == '\n') {
             command[length - 1] = '\0';
         }
-        printf("s>Command received: '%s'\n", command);
+        printf("s> Command received: '%s'\n", command);
         
-        if (strcmp(command, "QUIT") == 0) {
-            close(sc);
-            pthread_exit(NULL);
-            //exit(0);
-        }
+        
         // Leer nombre usuario
         if (readLine(sc, usuario, sizeof(usuario)) < 0) {
             printf("s> Error en recepción de username\n");
@@ -77,7 +73,6 @@ void *funcion_hilo(void *arg) {
             pthread_exit(NULL);
             close(sc);
         }
-
         if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
         else if (strcmp(command, "UNREGISTER") == 0) { resp = unregister_user(usuario); }
         else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
@@ -86,7 +81,12 @@ void *funcion_hilo(void *arg) {
         else if (strcmp(command, "LIST_USERS") == 0) {resp = list_users(sc,usuario); }
         else if(strcmp(command, "DELETE") == 0){resp = delete_file(usuario, filename);}
         else if(strcmp(command, "LIST_CONTENT") == 0){resp = list_content(sc, filename);}
-        else{resp = -1;}
+        else if(strcmp(command, "QUIT") == 0) {
+            resp = quit(sc,usuario);
+            
+
+        }
+        else{printf("respeusta -1");resp = -1;}
 
         char response[3];
         snprintf(response, sizeof(response), "%d", resp);
@@ -119,7 +119,6 @@ int register_user(const char *username) {
     return result;
 }
 
-
 int unregister_user(const char *username) {
     int user_found;
     pthread_mutex_lock(&mutex_file);
@@ -127,8 +126,6 @@ int unregister_user(const char *username) {
     pthread_mutex_unlock(&mutex_file);
     return user_found ; 
 }
-
-
 
 int connect_user(const char *username, const char *ip, int port ) {
     int found;
@@ -144,7 +141,6 @@ int connect_user(const char *username, const char *ip, int port ) {
         return 2; //Usuario no existe
     }
     char usernames[256];
-    printf("conectando usuario \n");
     sprintf(usernames, "@%s", username );
     found = insert_value(usernames, "connected_usr.txt");
 
@@ -159,7 +155,6 @@ int connect_user(const char *username, const char *ip, int port ) {
     else{return -1;}
 }
 
-
 int disconnect_user(const char *username) {
     pthread_mutex_lock(&mutex_file);
     int found = delete_user(username, "connected_usr.txt");
@@ -167,8 +162,6 @@ int disconnect_user(const char *username) {
     pthread_mutex_unlock(&mutex_file);
     return found; 
 }
-
-
 
 int publish(const char *username, char filename[256], char descripcion[256]){
     pthread_mutex_lock(&mutex_file);
@@ -179,10 +172,6 @@ int publish(const char *username, char filename[256], char descripcion[256]){
     }
     return found;
 }
-
-
-
-
 
 int list_users(int sc, const char *username) {
     pthread_mutex_lock(&mutex_file);
@@ -220,7 +209,6 @@ int list_users(int sc, const char *username) {
     pthread_mutex_unlock(&mutex_file);
     return 0; 
 }
-
 
 int delete_file(const char *username, const char *filename){
     pthread_mutex_lock(&mutex_file);
@@ -303,7 +291,15 @@ int list_content(int sc, const char *username){
 
 }
 
-
+int quit(int sc, const char *username){
+    pthread_mutex_lock(&mutex_file);
+    int found = delete_user(username, "connected_usr.txt");
+    pthread_mutex_unlock(&mutex_file);
+    if (found==0) {
+        return 0;
+    }
+    return 1;
+}
 
 int main( int argc, char *argv[] ) {
     init();
@@ -372,7 +368,6 @@ int main( int argc, char *argv[] ) {
             free(arg);
             close(sc);
         }
-        
     }
 
     close(sd);

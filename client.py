@@ -3,12 +3,11 @@ import argparse
 import socket
 import sys
 import threading
-import zeep
-
 
 class client:
     def __init__(self):
         client.user = ""
+        self.connected = False
 
     # ******************** TYPES *********************
     # *
@@ -23,14 +22,37 @@ class client:
     _port = -1
 
     # ******************** METHODS *******************
-    def shutdown_server(self):
+    def quit(self):
+        if not self.connected:
+            print("c> QUIT FAIL / CONNECT FIRST")
+            return client.RC.USER_ERROR
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            sock.sendall("SHUTDOWN".encode())
-            sock.close()  
-        except Exception as e:
-            print(f"Failed command: {str(e)}")
+            # Enviar nombre al servidor y el comando
+            command = 'QUIT\0'
+            sock.sendall(command.encode('utf-8'))
+            file_bytes = bytes(self.user + '\0', 'utf8')
+            sock.sendall(file_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            user_bytes = bytes(" "'\0', 'utf8')
+            sock.sendall(user_bytes)
+            response_code = sock.recv(2).decode('utf-8')
+            sock.close()
+            if response_code == '0':
+                print("c> QUIT OK")
+                self.connected = False 
+                return client.RC.OK
+            elif response_code == '1': 
+                print("c> QUIT FAIL")
+                return client.RC.ERROR
+            else: 
+                print("c> Q")
+                return client.RC.USER_ERROR
+        except:
+            sock.close()
+            return client.RC.ERROR
 
     def register(self, ):
         try:
@@ -48,7 +70,6 @@ class client:
             sock.sendall(user_bytes)
             print("command sent")
             response_code = sock.recv(1).decode('utf-8')
-            print("response code is ", response_code)
             sock.close()
             if response_code == '0':
                 print("c> REGISTER OK")
@@ -112,11 +133,11 @@ class client:
             sock.sendall(user_bytes)
             # Esperar la respuesta del servidor
             response_code = sock.recv(1024).decode('utf-8').strip()
-            print("codigo de respuesta",response_code)
             sock.close()
 
             if response_code == '0':
                 print("c> CONNECT OK")
+                self.connected = True
                 return client.RC.OK
             elif response_code == '1':
                 print("c> CONNECT FAIL , USER DOES NOT EXIST")
@@ -131,7 +152,7 @@ class client:
                 self.user = ""
                 return client.RC.ERROR
         except:
-            print("Error:")
+            print("Error al conectar al usuario")
             sock.close()
             return client.RC.ERROR
 
@@ -156,6 +177,7 @@ class client:
             print("response code is ", response_code)
             if response_code == '0':
                 print("c> DISCONNECT OK")
+                self.connected = False
                 return client.RC.OK
             elif response_code == '1':
                 print("c> DISCONNECT FAIL / USER DOES NOT EXIST")
@@ -460,9 +482,8 @@ class client:
                         self.disconnect()
                     elif action == "GET_FILE" and len(line) == 5:
                         self.getfile(line[1], line[2], line[3], line[4])
-                    elif action == "QUIT":
-                        self.shutdown_server()
-                        break
+                    elif action == "QUIT" and len(line) == 1:
+                        self.quit()
                     else:
                         print("Error: command not valid or incorrect syntax.")
                 except Exception as e:
@@ -472,18 +493,13 @@ class client:
             # Close the socket before exiting the shell
             print("Session ended.")
 
-    def devolverFecha(self):
-        wsdl_url = "http://localhost:8100/?wsdl"
-        soap = zeep.Client(wsdl=wsdl_url)
-        result = soap.service.fecha()
-        print(result)
-
     def init_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         server_address = (self._server, self._port + 100)
         sock.bind(server_address)
         sock.listen(5)
+        
 
         while True:
             connection, client_address = sock.accept()
@@ -541,7 +557,6 @@ class client:
         if (not client.parseArguments(argv)):
             client.usage()
             return
-        self.devolverFecha()
         server_thread = threading.Thread(target=self.init_server)
         client_thread = threading.Thread(target=self.shell)
 
