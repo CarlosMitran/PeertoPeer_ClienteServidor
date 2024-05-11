@@ -9,6 +9,7 @@
 #include "comm.h"
 #include "servidor.h"
 #include "libserver.h"
+#include "rpc_funciones.h"
 
 #define MAX_LINE_LEN 255
 #define MAX_THREADS    10
@@ -31,7 +32,8 @@ void *funcion_hilo(void *arg) {
     char filename[256];
     char descripcion[256];
     char command[256];
-
+    char fecha[20];
+    char buf_rpc[564];
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     getpeername(sc, (struct sockaddr *)&addr, &addr_size);
@@ -73,6 +75,14 @@ void *funcion_hilo(void *arg) {
             pthread_exit(NULL);
             close(sc);
         }
+
+        ret = readLine(sc, fecha, 256);
+        if (ret < 0) {
+            printf("Error en recepción descripcion\n");
+            pthread_exit(NULL);
+            close(sc);
+        }
+
         if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
         else if (strcmp(command, "UNREGISTER") == 0) { resp = unregister_user(usuario); }
         else if (strcmp(command, "CONNECT") == 0) { resp = connect_user(usuario,ip,port ); }
@@ -82,11 +92,12 @@ void *funcion_hilo(void *arg) {
         else if(strcmp(command, "DELETE") == 0){resp = delete_file(usuario, filename);}
         else if(strcmp(command, "LIST_CONTENT") == 0){resp = list_content(sc, filename);}
         else if(strcmp(command, "QUIT") == 0) {
-            resp = quit(sc,usuario);
-            
+            resp = quit(sc,usuario);}
 
-        }
         else{printf("respeusta -1");resp = -1;}
+        sprintf(buf_rpc, "%s %s  %s",usuario, command, fecha);
+
+        callPrintService(buf_rpc);
 
         char response[3];
         snprintf(response, sizeof(response), "%d", resp);

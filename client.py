@@ -3,6 +3,8 @@ import argparse
 import socket
 import sys
 import threading
+import zeep
+
 
 class client:
     def __init__(self):
@@ -38,16 +40,20 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             response_code = sock.recv(2).decode('utf-8')
             sock.close()
             if response_code == '0':
                 print("c> QUIT OK")
-                self.connected = False 
+                self.connected = False
                 return client.RC.OK
-            elif response_code == '1': 
+            elif response_code == '1':
                 print("c> QUIT FAIL")
                 return client.RC.ERROR
-            else: 
+            else:
                 print("c> Q")
                 return client.RC.USER_ERROR
         except:
@@ -68,6 +74,10 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             print("command sent")
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
@@ -99,6 +109,10 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -119,7 +133,7 @@ class client:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
             # Enviar nombre al servidor y el comando
-            command ="CONNECT\n"
+            command = "CONNECT\n"
             sock.sendall(command.encode('utf-8'))
 
             # Enviar nombre de usuario
@@ -128,9 +142,14 @@ class client:
 
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
-            
+
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             # Esperar la respuesta del servidor
             response_code = sock.recv(1024).decode('utf-8').strip()
             sock.close()
@@ -172,6 +191,10 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             response_code = sock.recv(2).decode('utf-8')
             sock.close()
             print("response code is ", response_code)
@@ -211,6 +234,10 @@ class client:
             #Enviar descripción
             file_bytes = bytes(description + '\0', 'utf8')
             sock.sendall(file_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
 
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
@@ -251,6 +278,10 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             response_code = sock.recv(3).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -294,6 +325,10 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
+
             while True:
                 msg = sock.recv(256).decode('utf-8')
                 msgcpy = msg
@@ -364,6 +399,9 @@ class client:
             sock.sendall(user_bytes)
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            fecha = self.devolverFecha()
+            fecha_bytes = bytes(fecha + '\0', 'utf8')
+            sock.sendall(fecha_bytes)
 
             while True:
                 msg = sock.recv(256).decode('utf-8')
@@ -499,7 +537,6 @@ class client:
         server_address = (self._server, self._port + 100)
         sock.bind(server_address)
         sock.listen(5)
-        
 
         while True:
             connection, client_address = sock.accept()
@@ -528,6 +565,12 @@ class client:
             finally:
                 # Close the connection
                 connection.close()
+
+    def devolverFecha(self):
+        wsdl_url = "http://localhost:8100/?wsdl"
+        soap = zeep.Client(wsdl=wsdl_url)
+        result = soap.service.fecha()
+        return result
 
     # * @brief Prints program usage
     @staticmethod

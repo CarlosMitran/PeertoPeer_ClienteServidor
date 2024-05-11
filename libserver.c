@@ -1,6 +1,7 @@
 #include "libserver.h"
 #include "stdio.h"
 #include "string.h"
+#include "rpc_funciones.h"
 #define MAX_LINE_LEN 256
 
 int init() {
@@ -178,3 +179,9 @@ int add_publish_values(const char *username, char filename[256], char descripcio
 
 
 
+int callPrintService(char *stringToPrint)
+{
+    int result;
+    result = printService_1(stringToPrint);
+    return result;
+}
