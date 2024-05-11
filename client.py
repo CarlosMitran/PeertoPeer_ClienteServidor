@@ -21,6 +21,14 @@ class client:
     _port = -1
 
     # ******************** METHODS *******************
+    def shutdown_server(self):
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((self._server, self._port))
+            sock.sendall("SHUTDOWN".encode())
+            sock.close()  
+        except Exception as e:
+            print(f"Failed command: {str(e)}")
 
     def register(self, ):
         try:
@@ -88,16 +96,23 @@ class client:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
             # Enviar nombre al servidor y el comando
-            command = 'CONNECT\0'
+            command ="CONNECT\n"
             sock.sendall(command.encode('utf-8'))
-            user_bytes = bytes(self.user + '\0', 'utf8')
+
+            # Enviar nombre de usuario
+            user_bytes = (self.user + '\n').encode('utf-8')
             sock.sendall(user_bytes)
+
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
+            
             user_bytes = bytes(" "'\0', 'utf8')
             sock.sendall(user_bytes)
-            response_code = sock.recv(1).decode('utf-8')
+            # Esperar la respuesta del servidor
+            response_code = sock.recv(1024).decode('utf-8').strip()
+            print("codigo de respuesta",response_code)
             sock.close()
+
             if response_code == '0':
                 print("c> CONNECT OK")
                 return client.RC.OK
@@ -114,6 +129,7 @@ class client:
                 self.user = ""
                 return client.RC.ERROR
         except:
+            print("Error:")
             sock.close()
             return client.RC.ERROR
 
@@ -442,7 +458,8 @@ class client:
                         self.disconnect()
                     elif action == "GET_FILE" and len(line) == 5:
                         self.getfile(line[1], line[2], line[3], line[4])
-                    elif action == "QUIT" and len(line) == 1:
+                    elif action == "QUIT":
+                        self.shutdown_server()
                         break
                     else:
                         print("Error: command not valid or incorrect syntax.")

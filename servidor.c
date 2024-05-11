@@ -40,14 +40,21 @@ void *funcion_hilo(void *arg) {
 
     //Leer comando
     while(1){
-        ret = readLine(sc, command, sizeof(command));
-        if (ret <= 0) {
-            printf("s> Error en recepción de comando o comando no soportado\n");
-            break;
+        if (readLine(sc, command, sizeof(command))<= 0) {
+            close(sc);
+            pthread_exit(NULL);
+            //break;
         }
-
+        size_t length = strlen(command);
+        if (length > 0 && command[length - 1] == '\n') {
+            command[length - 1] = '\0';
+        }
+        printf("s>Command received: '%s'\n", command);
+        
         if (strcmp(command, "QUIT") == 0) {
-            break;
+            close(sc);
+            pthread_exit(NULL);
+            //exit(0);
         }
         // Leer nombre usuario
         if (readLine(sc, usuario, sizeof(usuario)) < 0) {
@@ -61,12 +68,14 @@ void *funcion_hilo(void *arg) {
         if (ret < 0) {
             printf("Error en recepción filename\n");
             pthread_exit(NULL);
+            close(sc);
         }
 
         ret = readLine(sc, descripcion, 256);
         if (ret < 0) {
             printf("Error en recepción descripcion\n");
             pthread_exit(NULL);
+            close(sc);
         }
 
         if (strcmp(command, "REGISTER") == 0) {resp = register_user(usuario); }
@@ -87,6 +96,7 @@ void *funcion_hilo(void *arg) {
         if (ret == -1) {
             printf("Error en envío respuesta desde el servidor\n");
             exit(-1);
+            close(sc);
         }
     }
     close(sc);
@@ -129,11 +139,12 @@ int connect_user(const char *username, const char *ip, int port ) {
         return 1; //Usuario no existe
     }
     if (exist(username, "connected_usr.txt") == 1){
-        fprintf(stderr, "s> Usuario no registado, debes registrarte antes de conectarte\n");
+        fprintf(stderr, "s> Usuario ya conectado\n");
         pthread_mutex_unlock(&mutex_file);
         return 2; //Usuario no existe
     }
     char usernames[256];
+    printf("conectando usuario \n");
     sprintf(usernames, "@%s", username );
     found = insert_value(usernames, "connected_usr.txt");
 
