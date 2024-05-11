@@ -48,17 +48,21 @@ class client:
             sock.close()
             if response_code == '0':
                 print("c> QUIT OK")
-                self.connected = False
+                self.connected = False 
                 return client.RC.OK
-            elif response_code == '1':
+            elif response_code == '1': 
                 print("c> QUIT FAIL")
                 return client.RC.ERROR
-            else:
+            else: 
                 print("c> Q")
                 return client.RC.USER_ERROR
         except:
             sock.close()
             return client.RC.ERROR
+        finally:
+            sock.close()
+            sys.exit(0)
+
 
     def register(self, ):
         try:
@@ -530,6 +534,8 @@ class client:
         finally:
             # Close the socket before exiting the shell
             print("Session ended.")
+            sys.exit(0)
+
 
     def init_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
