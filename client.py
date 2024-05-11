@@ -3,6 +3,8 @@ import argparse
 import socket
 import sys
 import threading
+import zeep
+
 
 class client:
     def __init__(self):
@@ -470,6 +472,12 @@ class client:
             # Close the socket before exiting the shell
             print("Session ended.")
 
+    def devolverFecha(self):
+        wsdl_url = "http://localhost:8100/?wsdl"
+        soap = zeep.Client(wsdl=wsdl_url)
+        result = soap.service.fecha()
+        print(result)
+
     def init_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -533,6 +541,7 @@ class client:
         if (not client.parseArguments(argv)):
             client.usage()
             return
+        self.devolverFecha()
         server_thread = threading.Thread(target=self.init_server)
         client_thread = threading.Thread(target=self.shell)
 
