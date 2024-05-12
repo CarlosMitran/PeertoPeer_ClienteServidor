@@ -68,7 +68,6 @@ class client:
 
 
     def register(self):
-        #Prepara las cadenas que se deben enviar al servidor para registrar al usuario
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
@@ -460,7 +459,6 @@ class client:
             # Recibir la información de cada usuario conectado
             print(finalmessage)
             return client.RC.OK
-
         elif response_code == '1':
             print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
             return client.RC.USER_ERROR
@@ -468,7 +466,6 @@ class client:
             print("c> LIST_USERS FAIL, USER NOT CONNECTED")
             return client.RC.USER_ERROR
         else:
-            print("no se puede abrir")
             print("c> LIST_USERS FAIL")
             return client.RC.ERROR
 
@@ -517,13 +514,11 @@ class client:
         #de lo que se necesite
         try:
             while True:
-
                 try:
                     command = input("c> ")
                     line = command.strip().split()
                     if not line:
                         continue
-
                     action = line[0].upper()
                     if action == "REGISTER" and len(line) == 2:
                         self.user = line[1]
@@ -560,7 +555,6 @@ class client:
             print("Session ended.")
             sys.exit(0)
 
-
     def init_server(self):
         #Inicialización del servidor del cliente python, el cliente escucha y envía los ficheros cuando recibe una petición
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -569,7 +563,6 @@ class client:
         server_address = (self._server, self._port + 100)
         sock.bind(server_address)
         sock.listen(5)
-
         while True:
             connection, client_address = sock.accept()
             try:
