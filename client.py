@@ -191,9 +191,6 @@ class client:
             #Conexión al socket del servidor
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            if self.user == "":
-                print("c> DISCONNECT FAIL / CONNECT FIRST")
-                return client.RC.USER_ERROR
             # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'DISCONNECT\0'
             sock.sendall(command.encode('utf-8'))
@@ -232,9 +229,6 @@ class client:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            if self.user == "":
-                print("c> DISCONNECT FAIL / CONNECT FIRST")
-                return client.RC.USER_ERROR
             # Enviar nombre al servidor y el comando
             command = 'PUBLISH\0'
             sock.sendall(command.encode('utf-8'))
@@ -281,9 +275,6 @@ class client:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            if self.user == "":
-                print("c> DISCONNECT FAIL / CONNECT FIRST")
-                return client.RC.USER_ERROR
             # Enviar todos los datos.
             command = 'DELETE\0'
             sock.sendall(command.encode('utf-8'))
@@ -329,10 +320,6 @@ class client:
             #Conexión al socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            if self.user == "":
-                print("c> DISCONNECT FAIL / CONNECT FIRST")
-                return client.RC.USER_ERROR
-
             # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'LIST_USERS\0'
             sock.sendall(command.encode('utf-8'))
@@ -405,9 +392,6 @@ class client:
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            if self.user == "":
-                print("c> DISCONNECT FAIL / CONNECT FIRST")
-                return client.RC.USER_ERROR
             #Un envío por cada parámetro, comando, usuario, filename, descripción, fecha
             command = 'LIST_CONTENT\0'
             sock.sendall(command.encode('utf-8'))

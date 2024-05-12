@@ -80,7 +80,6 @@ int delete_user(const char *username,const char *file) {
     }
     //Reescribimos todos los datos, si nos encontramos con un usuario, no escribimos sus datos.
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
-        printf("%s", buf);
         if (counter <= 0) {
             if (buf[0] == '@') {
                 int n = strcspn(buf, "\n");
@@ -91,14 +90,12 @@ int delete_user(const char *username,const char *file) {
                 }
                 memset(temp_buf, 0, MAX_LINE_LEN);
             }
-            printf("%s", buf);
             fprintf(fpnew, "%s", buf);
         }
         else{
             counter = counter-1;
             if (buf[0] == '@'){
                 counter = 0;
-                printf("%s", buf);
                 fprintf(fpnew, "%s", buf);
             }
         }
