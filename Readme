@@ -12,3 +12,7 @@ Tras esto, se abrirán cuatro terminales, para ver todos los resultados, y ejecu
 python3 ./client.py -s ip -p puerto
 python3 ./ServicioFecha.py
 ./rpc_servidor
+
+El archivo testfile es un archivo de prueba para probar get_file fácilmente. El resto de archivos son necesarios para
+la correcta ejecución del programa. Published_content guarda el contenido publicado. Connected_usr los usuarios conectados
+y reg_users los usuarios registrados.

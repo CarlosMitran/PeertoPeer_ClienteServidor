@@ -248,7 +248,6 @@ class client:
             #Recibir respuesta y cerrar conexión
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
-
             if response_code == '0':
                 print("c> PUBLISH OK")
                 return client.RC.OK
@@ -441,10 +440,13 @@ class client:
             print(finalmessage)
             return client.RC.OK
         elif response_code == '1':
-            print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
+            print("c> LIST_CONTENT FAIL, USER DOES NOT EXIST")
             return client.RC.USER_ERROR
         elif response_code == '2':
-            print("c> LIST_USERS FAIL, USER NOT CONNECTED")
+            print("c> LIST_CONTENT FAIL, USER NOT CONNECTED")
+            return client.RC.USER_ERROR
+        elif response_code == '3':
+            print("c> LIST_CONTENT FAIL, REMOTE USER NOT CONNECTED")
             return client.RC.USER_ERROR
         else:
             print("c> LIST_USERS FAIL")
@@ -562,14 +564,16 @@ class client:
                         # Encode the file data into bytes using UTF-8 encoding
                         connection.sendall(data.encode('utf-8'))
                         data = file.read()
-                connection.sendall(b"0")
 
             except FileNotFoundError:
                 # Handle FileNotFoundError (file not found)
+                connection.sendall(b"1")
                 print(f'File "{message}" not found.')
+                connection.close()
 
             finally:
                 # Close the connection
+                connection.sendall(b"0")
                 connection.close()
 
     def devolverFecha(self):

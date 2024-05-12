@@ -92,7 +92,7 @@ void *funcion_hilo(void *arg) {
         else if (strcmp(command, "PUBLISH") == 0) {resp = publish(usuario, filename, descripcion); }
         else if (strcmp(command, "LIST_USERS") == 0) {resp = list_users(sc,usuario); }
         else if(strcmp(command, "DELETE") == 0){resp = delete_file(usuario, filename);}
-        else if(strcmp(command, "LIST_CONTENT") == 0){resp = list_content(sc, filename);}
+        else if(strcmp(command, "LIST_CONTENT") == 0){resp = list_content(sc, filename, usuario);}
         else if(strcmp(command, "QUIT") == 0) {
             resp = quit(sc,usuario);}
         else{printf("respuesta -1");resp = -1;}
@@ -299,13 +299,13 @@ int delete_file(const char *username, const char *filename){
 
 }
 
-int list_content(int sc, const char *username){
+int list_content(int sc, const char *username, const char *userpeticion){
     //Muy parecido a list_users, se encuentra al usuario, y tras esto se envía contenido hasta que se vuelve a encontrar
     //un usuario
     pthread_mutex_lock(&mutex_file);
     FILE *fp = fopen("published_content.txt", "r");
-    if (exist(username, "reg_users.txt") == 0){return 1;}
-    if (exist(username, "connected_usr.txt") == 0){return 2;}
+    if (exist(userpeticion, "reg_users.txt") == 0){return 1;}
+    if (exist(userpeticion, "connected_usr.txt") == 0){return 2;}
     if (exist(username, "published_content.txt") == 0){return 3;}
 
     char buf[256];
