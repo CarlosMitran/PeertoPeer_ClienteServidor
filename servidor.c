@@ -138,7 +138,8 @@ int unregister_user(const char *username) {
     //Elimina usuario del registro, cierra mutex y elimina usurio del registro con la función delete_user de libserver
     int user_found;
     pthread_mutex_lock(&mutex_file);
-    if ((user_found = delete_user(username, "reg_users.txt")) == -1){return -1;}
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if ((user_found = delete_user(username, "reg_users.txt")) == -1){return 2;}
     pthread_mutex_unlock(&mutex_file);
     return user_found ; 
 }
@@ -147,15 +148,16 @@ int connect_user(const char *username, const char *ip, int port ) {
     //Añade usuario ip y puerto al fichero de conectados. Si ya existe devuelve error.
     int found;
     pthread_mutex_lock(&mutex_file);
+
     if (exist(username, "reg_users.txt")!=1){
         fprintf(stderr, "s> Usuario no registado, debes registrarte antes de conectarte\n");
         pthread_mutex_unlock(&mutex_file);
-        return 1; //Usuario no existe
+        return 1; //Usuario no registrado
     }
     if (exist(username, "connected_usr.txt") == 1){
         fprintf(stderr, "s> Usuario ya conectado\n");
         pthread_mutex_unlock(&mutex_file);
-        return 2; //Usuario no existe
+        return 2; //Usuario existe
     }
     //Convertimos los parámetros a variables con tamaño fijo y las preparamos para la funcion insert_value de libserver
     char usernames[256];
@@ -170,13 +172,16 @@ int connect_user(const char *username, const char *ip, int port ) {
     pthread_mutex_unlock(&mutex_file);
     if (found == 0){return 0;} //Usuario añadido
     else if (found == 1){return 2;} //Usuario ya conectado
-    else{return -1;}
+    else{return 3;}
 }
 
 int disconnect_user(const char *username) {
     //Eliminamos los datos de usuario ip y puerto del fichero de usuarios conectados mediante la función de libserver
     pthread_mutex_lock(&mutex_file);
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
     int found = delete_user(username, "connected_usr.txt");
+    if (found == 2){return 3;}
     printf("disconnect response is %d\n", found);
     pthread_mutex_unlock(&mutex_file);
     return found; 
@@ -184,11 +189,13 @@ int disconnect_user(const char *username) {
 
 int publish(const char *username, char filename[256], char descripcion[256]){
     //Añadimos al fichero de publicados el filename y la descripción
+    if (exist(usuario, "reg_users.txt") == 0){return 1;}
+    if (exist(usuario, "connected_usr.txt") == 0){return 2;}
     pthread_mutex_lock(&mutex_file);
     int found = add_publish_values(username, filename, descripcion);
     pthread_mutex_unlock(&mutex_file);
     if (found == -1){
-        return -1;
+        return 4;
     }
     return found;
 }
@@ -197,6 +204,9 @@ int list_users(int sc, const char *username) {
     //Buscamos los usuarios en usuarios conectados, tras esto los enviamos.
     pthread_mutex_lock(&mutex_file);
     FILE *fp = fopen("connected_usr.txt", "r");
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
+    if (fp == NULL){return 3;}
 
     char buf[256];
     char temp_buf[265];
@@ -236,6 +246,8 @@ int list_users(int sc, const char *username) {
 int delete_file(const char *username, const char *filename){
     //Se elimina el fichero indicado del fichero de publicados, el usuario ya ha quedado registrado y no se eliminará.
     pthread_mutex_lock(&mutex_file);
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
     char buf[256];
     char temp_buf[256];
     int found = 0;
@@ -290,6 +302,9 @@ int list_content(int sc, const char *username){
     //un usuario
     pthread_mutex_lock(&mutex_file);
     FILE *fp = fopen("published_content.txt", "r");
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
+    if (exist(username, "published_content.txt") == 0){return 3;}
 
     char buf[256];
     char temp_buf[265];
@@ -322,7 +337,9 @@ int list_content(int sc, const char *username){
 int quit(int sc, const char *username){
     //Se elimina el usuario de conectados, tras esto se envía código de confirmación
     pthread_mutex_lock(&mutex_file);
-    int found = delete_user(username, "connected_usr.txt");
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
+    disconnect_user(username);
     pthread_mutex_unlock(&mutex_file);
     if (found==0) {
         return 0;

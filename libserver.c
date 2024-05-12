@@ -62,7 +62,7 @@ int delete_user(const char *username,const char *file) {
     //Función para eliminar usuarios de los files
     if ((exist(username, file)) != 1) {
         //El usuario no existe o ha ocurrido un error
-        return -1;
+        return 1;
     }
     int counter = 0;
     //Temp_buf realiza strcmp sin el @
@@ -72,11 +72,11 @@ int delete_user(const char *username,const char *file) {
     FILE *fpold, *fpnew;
     fpold = fopen(file, "r");
     if (fpold == NULL) {
-        return -1;
+        return 2;
     }
     fpnew = fopen("temp.txt", "w");
     if (fpnew == NULL) {
-        return -1;
+        return 2;
     }
     //Reescribimos todos los datos, si nos encontramos con un usuario, no escribimos sus datos.
     while (fgets(buf, MAX_LINE_LEN, fpold) != NULL) {
@@ -107,7 +107,7 @@ int delete_user(const char *username,const char *file) {
     fclose(fpnew);
     if (rename("temp.txt", file) != 0) {
         perror("Error renaming file \n");
-        return 1;
+        return 2;
     }
     return 0;
 }
@@ -120,7 +120,7 @@ int insert_value(const char *username, const char *file){
     if (!fp) {
         fp = fopen(file, "w");
         if (!fp) {
-            return -1; // Error al abrir archivo
+            return 2; // Error al abrir archivo
         }
     }
     //Si el usuario ya existe no lo añadimos
@@ -130,7 +130,7 @@ int insert_value(const char *username, const char *file){
         return 1; //Usuario ya esta en el archivo
     } else if (exists == -1){
         fclose(fp); 
-        return -1; //Error 
+        return 2; //Error
     }
     // Si no se encontró, añadir al final
     fseek(fp, 0, SEEK_END);

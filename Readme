@@ -1,27 +1,14 @@
 Carlos Mitran y Helena González
 100472086@alumnos.uc3m.es 100451026@alumnos.uc3m.es
 
+IMPORTANTE: LOS PAQUETES SPYNE Y ZEEP DEBEN ESTAR INSTALADOS CON PIP INSTALL
 
-En terminal cliente, se debe ejecutar el comando:
+Antes de la ejecución, se debe hacer:
 export LD_LIBRARY_PATH=./:$LD_LIBRARY_PATH
-env IP_TUPLAS=localhost PORT_TUPLAS=8080 ./cliente
-
-
-Como alternativa, se pueden definir las variables de entorno primero, y luego usar el cliente por separado mediante:
 export IP_TUPLAS=localhost
-export PORT_TUPLAS=8080
-./cliente <nºop> <param op>
 
-
-Archivos ssh:
-chmod +x ssh_pruebas_conc.sh
-chmod +x ssh_pruebas_conc2.sh
-chmod +x ssh_pruebas_conc3.sh
-chmod +x ssh_pruebas_conc4.sh
-./ssh_pruebas_conc.sh
-./ssh_pruebas_conc2.sh
-./ssh_pruebas_conc3.sh
-./ssh_pruebas_conc4.sh
-
-./servidor -p 8080
-python3 ./client.py -s localhost -p 8080
+Tras esto, se abrirán cuatro terminales, para ver todos los resultados, y ejecutaremos:
+./servidor -p <puerto>
+python3 ./client.py -s ip -p puerto
+python3 ./ServicioFecha.py
+./rpc_servidor
