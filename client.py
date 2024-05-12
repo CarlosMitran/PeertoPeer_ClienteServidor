@@ -206,7 +206,6 @@ class client:
             #Recibir respuesta y cerrar conexión
             response_code = sock.recv(2).decode('utf-8')
             sock.close()
-            print("response code is ", response_code)
             if response_code == '0':
                 print("c> DISCONNECT OK")
                 self.connected = False
@@ -249,7 +248,6 @@ class client:
             #Recibir respuesta y cerrar conexión
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
-            print("response code is", response_code)
 
             if response_code == '0':
                 print("c> PUBLISH OK")
