@@ -33,7 +33,7 @@ void *funcion_hilo(void *arg) {
     char descripcion[256];
     char command[256];
     char fecha[20];
-    char buf_rpc[564];
+    char buf_rpc[1024];
     struct sockaddr_in addr;
     socklen_t addr_size = sizeof(struct sockaddr_in);
     getpeername(sc, (struct sockaddr *)&addr, &addr_size);
@@ -99,7 +99,9 @@ void *funcion_hilo(void *arg) {
 
         //Enviamos operación y fecha al servidor RPC
 
-        sprintf(buf_rpc, "%s %s  %s",usuario, command, fecha);
+        if (strcmp(command, "PUBLISH") == 0){sprintf(buf_rpc, "%s %s <%s> %s", usuario , command, filename, fecha);}
+        else if (strcmp(command, "DELETE") == 0){sprintf(buf_rpc, "%s %s <%s> %s", usuario , command, filename, fecha);}
+        else{sprintf(buf_rpc, "%s %s  %s",usuario, command, fecha);}
         callPrintService(buf_rpc);
         //Enviamos respuesta al cliente
         char response[3];
@@ -189,8 +191,8 @@ int disconnect_user(const char *username) {
 
 int publish(const char *username, char filename[256], char descripcion[256]){
     //Añadimos al fichero de publicados el filename y la descripción
-    if (exist(usuario, "reg_users.txt") == 0){return 1;}
-    if (exist(usuario, "connected_usr.txt") == 0){return 2;}
+    if (exist(username, "reg_users.txt") == 0){return 1;}
+    if (exist(username, "connected_usr.txt") == 0){return 2;}
     pthread_mutex_lock(&mutex_file);
     int found = add_publish_values(username, filename, descripcion);
     pthread_mutex_unlock(&mutex_file);
@@ -335,16 +337,14 @@ int list_content(int sc, const char *username){
 }
 
 int quit(int sc, const char *username){
+    int res;
     //Se elimina el usuario de conectados, tras esto se envía código de confirmación
     pthread_mutex_lock(&mutex_file);
     if (exist(username, "reg_users.txt") == 0){return 1;}
     if (exist(username, "connected_usr.txt") == 0){return 2;}
-    disconnect_user(username);
+    res = disconnect_user(username);
     pthread_mutex_unlock(&mutex_file);
-    if (found==0) {
-        return 0;
-    }
-    return 1;
+    return res;
 }
 
 int main( int argc, char *argv[] ) {

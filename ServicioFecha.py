@@ -12,7 +12,7 @@ class DatetimeServer(ServiceBase):
         current_datetime = datetime.datetime.now()
         formatted_datetime = current_datetime.strftime("%d/%m/%Y %H:%M:%S")
         return formatted_datetime
-    #Protocolos
+    #Protoco
 application = Application(
     services=[DatetimeServer],
     tns='http://tests.python-zeep.org/',
