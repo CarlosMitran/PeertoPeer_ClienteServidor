@@ -58,7 +58,6 @@ class client:
             sock.close()
             sys.exit(0)
 
-
     def register(self, ):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -405,7 +404,6 @@ class client:
             # Recibir la información de cada usuario conectado
             print(finalmessage)
             return client.RC.OK
-
         elif response_code == '1':
             print("c> LIST_USERS FAIL, USER DOES NOT EXIST")
             return client.RC.USER_ERROR
@@ -413,7 +411,6 @@ class client:
             print("c> LIST_USERS FAIL, USER NOT CONNECTED")
             return client.RC.USER_ERROR
         else:
-            print("no se puede abrir")
             print("c> LIST_USERS FAIL")
             return client.RC.ERROR
 
@@ -456,13 +453,11 @@ class client:
     def shell(self):
         try:
             while True:
-
                 try:
                     command = input("c> ")
                     line = command.strip().split()
                     if not line:
                         continue
-
                     action = line[0].upper()
                     if action == "REGISTER" and len(line) == 2:
                         self.user = line[1]
@@ -493,12 +488,9 @@ class client:
                         print("Error: command not valid or incorrect syntax.")
                 except Exception as e:
                     print("Exception:", str(e))
-
         finally:
-            # Close the socket before exiting the shell
             print("Session ended.")
             sys.exit(0)
-            
 
     def init_server(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -507,7 +499,6 @@ class client:
         sock.bind(server_address)
         sock.listen(5)
         
-
         while True:
             connection, client_address = sock.accept()
             try:
