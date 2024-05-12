@@ -25,13 +25,16 @@ class client:
 
     # ******************** METHODS *******************
     def quit(self):
+        #Prepara las cadenas que se deben enviar al servidor para cerrar el cliente
+
         if not self.connected:
             print("c> QUIT FAIL / CONNECT FIRST")
             return client.RC.USER_ERROR
         try:
+            #Conexión con el socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'QUIT\0'
             sock.sendall(command.encode('utf-8'))
             file_bytes = bytes(self.user + '\0', 'utf8')
@@ -43,7 +46,7 @@ class client:
             fecha = self.devolverFecha()
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
-
+            #Código de respuesta y cierre de conexión
             response_code = sock.recv(2).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -64,11 +67,12 @@ class client:
             sys.exit(0)
 
 
-    def register(self, ):
+    def register(self):
+        #Prepara las cadenas que se deben enviar al servidor para registrar al usuario
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'REGISTER\0'
             print("sending comand")
             sock.sendall(command.encode('utf-8'))
@@ -82,7 +86,8 @@ class client:
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
 
-            print("command sent")
+            # Recibir respuesta del servidor y cerrar conexión
+
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -100,11 +105,12 @@ class client:
             sock.close()
             return client.RC.ERROR
 
-    def unregister(self, ):
+    def unregister(self):
+        #Prepara las cadenas que se deben enviar al servidor para eliminar del registro al usuario
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'UNREGISTER\0'
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
@@ -116,6 +122,7 @@ class client:
             fecha = self.devolverFecha()
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
+            # Recibir respuesta del servidor y cerrar conexión
 
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
@@ -133,14 +140,15 @@ class client:
             return client.RC.ERROR
 
     def connect(self):
+        #Prepara las cadenas que se deben enviar al servidor para la conexión del usuario
         try:
+            #Conexión al socket del servidor
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = "CONNECT\n"
             sock.sendall(command.encode('utf-8'))
 
-            # Enviar nombre de usuario
             user_bytes = (self.user + '\n').encode('utf-8')
             sock.sendall(user_bytes)
 
@@ -154,8 +162,8 @@ class client:
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
 
-            # Esperar la respuesta del servidor
-            response_code = sock.recv(1024).decode('utf-8').strip()
+            # Recibir respuesta del servidor y cerrar conexión
+            response_code = sock.recv(1).decode('utf-8').strip()
             sock.close()
 
             if response_code == '0':
@@ -180,13 +188,15 @@ class client:
             return client.RC.ERROR
 
     def disconnect(self):
+        #Prepara las cadenas que se deben enviar al servidor para la desconexión del usuario
         try:
+            #Conexión al socket del servidor
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
                 return client.RC.USER_ERROR
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'DISCONNECT\0'
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
@@ -198,7 +208,7 @@ class client:
             fecha = self.devolverFecha()
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
-
+            #Recibir respuesta y cerrar conexión
             response_code = sock.recv(2).decode('utf-8')
             sock.close()
             print("response code is ", response_code)
@@ -220,6 +230,7 @@ class client:
             return client.RC.ERROR
 
     def publish(self, fileName, description):
+        #Prepara las cadenas que se deben enviar al servidor para publicar nombre y descripción de fichero.
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
@@ -239,10 +250,11 @@ class client:
             file_bytes = bytes(description + '\0', 'utf8')
             sock.sendall(file_bytes)
             fecha = self.devolverFecha()
+            #Envío de fecha
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
 
-
+            #Recibir respuesta y cerrar conexión
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
             print("response code is", response_code)
@@ -267,13 +279,14 @@ class client:
             return client.RC.ERROR
 
     def delete(self, fileName):
+        #Prepara las cadenas que se deben enviar al servidor para borrar el usuario.
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
                 return client.RC.USER_ERROR
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos.
             command = 'DELETE\0'
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
@@ -285,7 +298,7 @@ class client:
             fecha = self.devolverFecha()
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
-
+            #Recibir respuesta y cerrar conexión
             response_code = sock.recv(3).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -308,19 +321,21 @@ class client:
             return client.RC.ERROR
 
     def listusers(self):
+        #Prepara el envío del comando listusers y se encarga de recibir y imprimir los resultados
         counter = 0
         finalmessage = ""
         number_of_users = 0
         response_code = -1
         end = 0
         try:
+            #Conexión al socket
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect((self._server, self._port))
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
                 return client.RC.USER_ERROR
 
-            # Enviar nombre al servidor y el comando
+            # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'LIST_USERS\0'
             sock.sendall(command.encode('utf-8'))
             file_bytes = bytes(self.user + '\0', 'utf8')
@@ -383,6 +398,7 @@ class client:
             return client.RC.ERROR
 
     def listcontent(self, username):
+        #Envío de los datos al servidor y conexión con este.
         counter = 0
         finalmessage = ""
         number_of_users = 0
@@ -394,7 +410,7 @@ class client:
             if self.user == "":
                 print("c> DISCONNECT FAIL / CONNECT FIRST")
                 return client.RC.USER_ERROR
-
+            #Un envío por cada parámetro, comando, usuario, filename, descripción, fecha
             command = 'LIST_CONTENT\0'
             sock.sendall(command.encode('utf-8'))
             file_bytes = bytes(self.user + '\0', 'utf8')
@@ -406,13 +422,15 @@ class client:
             fecha = self.devolverFecha()
             fecha_bytes = bytes(fecha + '\0', 'utf8')
             sock.sendall(fecha_bytes)
-
+            #Mientras siga recibiendo datos, añade a una lista estos, tras ello, se imprime todo
             while True:
                 msg = sock.recv(256).decode('utf-8')
                 msgcpy = msg
                 totalmsg = [line for line in msgcpy.split('\n') if line.strip()]
                 totalmsg = [element for element in totalmsg if element != "@"]
                 for i in totalmsg:
+                    #El servidor envía al principio de las cadenas un identificador. Este identificador sirve para poder
+                    #saber dónde va cada parte de la cadena a la hora de imprimir
                     if i[0] == "@" and counter == 0:
                         filename = i[1:]
                         counter = 1
@@ -455,6 +473,7 @@ class client:
             return client.RC.ERROR
 
     def getfile(self, server, port, remote_FileName, local_FileName, ):
+        #Se conecta al socket del servidor de otro cliente python, envía cadena del file que quiere, y lo recibe
         server_address = (server, int(port))
         print('conectando a {} y puerto {}'.format(*server_address))
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -465,6 +484,7 @@ class client:
             sock.sendall(message)
             filename = local_FileName
             fo = open(filename, "w")
+            #Recibir el fichero
             while True:
                 msg = sock.recv(1024).decode('utf-8')
                 recv_len = len(msg)
@@ -474,6 +494,7 @@ class client:
                 fo.write(msg)
                 if '\0' in msg:
                     break
+            #Valor de respuesta
             response_code = sock.recv(1).decode('utf-8')
             sock.close()
             if response_code == '0':
@@ -491,6 +512,9 @@ class client:
 
     # * @brief Command interpreter for the client. It calls the protocol functions.
     def shell(self):
+        #Función shell, se encarga de imprimir las cadenas necesarias y de leer el input del usuario. El socket se inicia
+        #en cada función de manera separada, para poder conectarse a sockets de otros clientes o al socket servidor dependiendo
+        #de lo que se necesite
         try:
             while True:
 
@@ -538,8 +562,10 @@ class client:
 
 
     def init_server(self):
+        #Inicialización del servidor del cliente python, el cliente escucha y envía los ficheros cuando recibe una petición
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        #Puerto por defecto, 100 + puerto cliente
         server_address = (self._server, self._port + 100)
         sock.bind(server_address)
         sock.listen(5)
@@ -573,6 +599,7 @@ class client:
                 connection.close()
 
     def devolverFecha(self):
+        #Conexión con el websocket y devolución del valor de fecha
         wsdl_url = "http://localhost:8100/?wsdl"
         soap = zeep.Client(wsdl=wsdl_url)
         result = soap.service.fecha()
@@ -603,6 +630,7 @@ class client:
 
     # ******************** MAIN *********************
     def main(self, argv):
+        #Se busca si los argumentos son correctos, si lo son, se inician los hilos de servidor y cliente del cliente python
         if (not client.parseArguments(argv)):
             client.usage()
             return
