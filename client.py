@@ -73,7 +73,6 @@ class client:
             sock.connect((self._server, self._port))
             # Enviar todos los datos. Fichero y descripción deben enviarse vacíos para que el servidor no tenga problemas.
             command = 'REGISTER\0'
-            print("sending comand")
             sock.sendall(command.encode('utf-8'))
             user_bytes = bytes(self.user + '\0', 'utf8')
             sock.sendall(user_bytes)
